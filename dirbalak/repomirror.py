@@ -1,4 +1,5 @@
 from upseto import gitwrapper
+from upseto import run
 from dirbalak import config
 from dirbalak import filelock
 import upseto.manifest
@@ -38,3 +39,7 @@ class RepoMirror:
     def hash(self, branch):
         with self._lock.lock(timeout=self._LOCK_TIMEOUT):
             self._git.hash(branch)
+
+    def replicate(self, destination):
+        with self._lock.lock(timeout=self._LOCK_TIMEOUT):
+            run.run(["sudo", "cp", "-a", self._cloneDirectory, destination + "/"])
