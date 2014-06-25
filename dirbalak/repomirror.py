@@ -12,7 +12,7 @@ class RepoMirror:
 
     def __init__(self, gitURL):
         self._gitURL = gitURL
-        self._identifier = gitURL.replace(":", "_").replace("/", "_")
+        self._identifier = gitURL.replace(":", "_").replace("/", "_").replace("@", "_")
         self._cloneDirectory = os.path.join(config.REPO_MIRRORS_BASEDIR, self._identifier)
         self._lock = filelock.FileLock(self._cloneDirectory + ".lock")
         self._git = None
