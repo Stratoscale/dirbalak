@@ -2,6 +2,7 @@ import argparse
 from dirbalak import discover
 from dirbalak import config
 from dirbalak import repomirrorcache
+from dirbalak import cleanbuild
 from upseto import gitwrapper
 from upseto import run
 import logging
@@ -26,6 +27,7 @@ whatGroup = cleanbuildCmd.add_mutually_exclusive_group(required=True)
 whatGroup.add_argument("--gitURL")
 whatGroup.add_argument("--currentProject", action='store_true')
 cleanbuildCmd.add_argument("--hash", default="origin/master")
+cleanbuildCmd.add_argument("--nosubmit", action="store_true")
 args = parser.parse_args()
 
 if args.cmd == "discover":
@@ -39,26 +41,7 @@ if args.cmd == "discover":
     if args.graphicOutput:
         discoverInstance.saveGraphPng(args.graphicOutput)
 elif args.cmd == "cleanbuild":
-    os.environ['SOLVENT_CLEAN'] = 'Yes'
-    buildRootFSlabel = config.DEFAULT_BUILD_ROOTFS_LABEL
-    logging.info("checking out build chroot at label '%(label)s'", dict(label=buildRootFSlabel))
-    run.run([
-        "sudo", "solvent", "bringlabel", "--label", buildRootFSlabel,
-        "--destination", config.BUILD_CHROOT])
     gitURL = gitwrapper.GitWrapper(".").originURL() if args.currentProject else args.gitURL
-    mirror = repomirrorcache.get(gitURL)
-    assert len(mirror.upsetoManifest(args.hash).requirements()) == 0
-    assert len(mirror.solventManifest(args.hash).requirements()) == 0
-    logging.info("Creating git repo inside chroot")
-    mirror.replicate(config.BUILD_DIRECTORY)
-    git = gitwrapper.GitWrapper.existing(gitURL, config.BUILD_DIRECTORY)
-    git.checkout(args.hash)
-    relative = git.directory()[len(config.BUILD_CHROOT):]
-    logging.info("Running make")
-    run.run([
-        "sudo", "chroot", config.BUILD_CHROOT, "sh", "-c",
-        "cd %s; make" % relative])
-    run.run(["sudo", "-E", "solvent", "submitbuild"], cwd=git.directory())
-    run.run(["sudo", "-E", "solvent", "approve"], cwd=git.directory())
+    cleanbuild.CleanBuild(gitURL=gitURL, hash=args.hash, submit=not args.nosubmit).go()
 else:
     assert False, "command mismatch"
