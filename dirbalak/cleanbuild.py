@@ -11,15 +11,15 @@ class CleanBuild:
         self._gitURL = gitURL
         self._hash = hash
         self._submit = submit
-        self._buildRootFSlabel = config.DEFAULT_BUILD_ROOTFS_LABEL
         self._mirror = repomirrorcache.get(self._gitURL)
 
     def go(self):
         os.environ['SOLVENT_CLEAN'] = 'Yes'
         self._verifiyDependenciesExist()
-        self._checkOutBuildRootFS()
-        self._checkOutDependencies()
+        buildRootFSLabel = self._findBuildRootFSLabel()
+        self._checkOutBuildRootFS(buildRootFSLabel)
         git = self._cloneSources()
+        self._checkOutDependencies(git)
         self._make(git)
         if self._submit:
             run.run(["sudo", "-E", "solvent", "submitbuild"], cwd=git.directory())
@@ -29,19 +29,18 @@ class CleanBuild:
             run.run(["sudo", "-E", "solvent", "approve"], cwd=git.directory())
 
     def _verifiyDependenciesExist(self):
-        assert len(self._mirror.upsetoManifest(self._hash).requirements()) == 0
-        assert len(self._mirror.solventManifest(self._hash).requirements()) == 0
+        self._mirror.run(["solvent", "checkrequirements"], hash=self._hash)
 
-    def _checkOutBuildRootFS(self):
-        logging.info("checking out build chroot at label '%(label)s'", dict(label=self._buildRootFSlabel))
+    def _checkOutBuildRootFS(self, buildRootFSLabel):
+        logging.info("checking out build chroot at label '%(label)s'", dict(label=buildRootFSLabel))
         run.run([
-            "sudo", "solvent", "bringlabel", "--label", self._buildRootFSlabel,
+            "sudo", "solvent", "bringlabel", "--label", buildRootFSLabel,
             "--destination", config.BUILD_CHROOT])
         run.run([
             "sudo", "cp", "-a", "/etc/hosts", "/etc/resolv.conf", os.path.join(config.BUILD_CHROOT, "etc")])
 
-    def _checkOutDependencies(self):
-        pass
+    def _checkOutDependencies(self, git):
+        run.run(["sudo", "solvent", "fulfillrequirements"], cwd=git.directory())
 
     def _cloneSources(self):
         logging.info("Cloning git repo inside chroot")
@@ -62,3 +61,14 @@ class CleanBuild:
 
     def _rackTest(self, git):
         pass
+
+    def _findBuildRootFSLabel(self):
+        mani = self._mirror.dirbalakManifest(self._hash)
+        try:
+            buildRootFSGitBasename = mani.buildRootFS()
+        except IndexError:
+            return config.DEFAULT_BUILD_ROOTFS_LABEL
+        label = self._mirror.run([
+            'solvent', 'printlabel', '--product', 'rootfs', '--repositoryBasename', buildRootFSGitBasename],
+            hash=self._hash)
+        return label.strip()

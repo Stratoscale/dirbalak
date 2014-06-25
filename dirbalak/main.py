@@ -1,12 +1,9 @@
 import argparse
 from dirbalak import discover
-from dirbalak import config
-from dirbalak import repomirrorcache
 from dirbalak import cleanbuild
+from dirbalak import setoperation
 from upseto import gitwrapper
-from upseto import run
 import logging
-import os
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,6 +25,13 @@ whatGroup.add_argument("--gitURL")
 whatGroup.add_argument("--currentProject", action='store_true')
 cleanbuildCmd.add_argument("--hash", default="origin/master")
 cleanbuildCmd.add_argument("--nosubmit", action="store_true")
+setCmd = subparsers.add_parser(
+    "set",
+    help="set dirbalak parameters")
+setCmd.add_argument(
+    "key", help="one of: "
+    "'buildRootFS' (==solvent requirement basename for rootfs product to build cleanly inside)")
+setCmd.add_argument("value")
 args = parser.parse_args()
 
 if args.cmd == "discover":
@@ -43,5 +47,7 @@ if args.cmd == "discover":
 elif args.cmd == "cleanbuild":
     gitURL = gitwrapper.GitWrapper(".").originURL() if args.currentProject else args.gitURL
     cleanbuild.CleanBuild(gitURL=gitURL, hash=args.hash, submit=not args.nosubmit).go()
+elif args.cmd == "set":
+    setoperation.SetOperation(key=args.key, value=args.value).go()
 else:
     assert False, "command mismatch"
