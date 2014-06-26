@@ -66,7 +66,7 @@ class CleanBuild:
         mani = self._mirror.dirbalakManifest(self._hash)
         try:
             buildRootFSGitBasename = mani.buildRootFS()
-        except IndexError:
+        except KeyError:
             return config.DEFAULT_BUILD_ROOTFS_LABEL
         label = self._mirror.run([
             'solvent', 'printlabel', '--product', 'rootfs', '--repositoryBasename', buildRootFSGitBasename],
