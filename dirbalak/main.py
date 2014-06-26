@@ -2,6 +2,7 @@ import argparse
 from dirbalak import discover
 from dirbalak import cleanbuild
 from dirbalak import setoperation
+from dirbalak import repomirrorcache
 from upseto import gitwrapper
 import logging
 
@@ -16,7 +17,14 @@ discoverCmd.add_argument(
     "--currentProject", action='store_true',
     help="Add the current git project origin url to the project list to start discovery from")
 discoverCmd.add_argument("--gitURL", nargs="*", help="Add this url to the discovery project list")
-discoverCmd.add_argument("--graphicOutput", help="use dot to discover the output")
+discoverCmd.add_argument("--graphicOutput", help="use dot to plot the output")
+discoverCmd.add_argument("--dotOutput", help="save dot file")
+discoverCmd.add_argument(
+    "--noFetch", action="store_true",
+    help="dont git fetch anything, use already fetched data only")
+discoverCmd.add_argument(
+    "--officialObjectStore",
+    help="object store to test existance of labels in, to determine if built")
 cleanbuildCmd = subparsers.add_parser(
     "cleanbuild",
     help="cleanly build a project")
@@ -40,10 +48,16 @@ if args.cmd == "discover":
         projects.append(gitwrapper.GitWrapper('.').originURL())
     if len(projects) == 0:
         raise Exception("No projects specified in command line")
-    discoverInstance = discover.Discover(projects)
+    if args.noFetch:
+        repomirrorcache.fetch = False
+    discoverInstance = discover.Discover(projects, objectStore=args.officialObjectStore)
     print discoverInstance.renderText()
     if args.graphicOutput:
-        discoverInstance.saveGraphPng(args.graphicOutput)
+        graph = discoverInstance.makeGraph()
+        graph.savePng(args.graphicOutput)
+    if args.dotOutput:
+        graph = discoverInstance.makeGraph()
+        graph.savePng(args.dotOutput)
 elif args.cmd == "cleanbuild":
     gitURL = gitwrapper.GitWrapper(".").originURL() if args.currentProject else args.gitURL
     cleanbuild.CleanBuild(gitURL=gitURL, hash=args.hash, submit=not args.nosubmit).go()

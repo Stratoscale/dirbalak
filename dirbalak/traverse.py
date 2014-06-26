@@ -20,15 +20,19 @@ class Traverse:
             return
         self._visitedTuples.add(tuple)
 
+        mirror = repomirrorcache.get(gitURL)
+        masterHash = mirror.hash('origin/master')
+        if hash == masterHash:
+            hash = 'origin/master'
+
         dep = Dependency(
             gitURL=gitURL, hash=hash, requiringURL=requiringURL,
             requiringURLHash=requiringURLHash, type=type)
         yield dep
 
-        mirror = repomirrorcache.get(gitURL)
         if self._visitMaster:
-            if mirror.hash('origin/master') != hash:
-                for x in self._traverse(gitURL, 'origin/master', None, None, 'master'):
+            if hash != 'origin/master':
+                for x in self._traverse(gitURL, 'origin/master', None, masterHash, 'master'):
                     yield x
         for requirement in mirror.upsetoManifest(hash).requirements():
             for x in self._traverse(requirement['originURL'], requirement['hash'], gitURL, hash, 'upseto'):

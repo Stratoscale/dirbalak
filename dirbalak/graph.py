@@ -30,16 +30,39 @@ class Graph:
         for toQuote in ['label', 'color']:
             if toQuote in withQuotations:
                 withQuotations[toQuote] = '"' + withQuotations[toQuote] + '"'
+        if 'cluster' in withQuotations:
+            del withQuotations['cluster']
         return ", ".join(["%s=%s" % (k, v) for k, v in withQuotations.iteritems()])
 
     def _dotContents(self):
         result = ["digraph G {"]
+        clusters = set()
+        for node, attributes in self._attributes.iteritems():
+            cluster = attributes.get('cluster', None)
+            if cluster is None:
+                result.append('"%s" [ %s ];' % (node, self._attributesToString(attributes)))
+            else:
+                clusters.add(cluster)
+        for cluster in clusters:
+            result.append("subgraph cluster_%s {" % cluster)
+            for node, attributes in self._attributes.iteritems():
+                if attributes.get('cluster', None) == cluster:
+                    result.append('"%s" [ %s ];' % (node, self._attributesToString(attributes)))
+            for source, arcs in self._arcs.iteritems():
+                for dest, attributes in arcs.iteritems():
+                    sourceSubgraph = self._attributes[source].get('cluster', None)
+                    destSubgraph = self._attributes[dest].get('cluster', None)
+                    if sourceSubgraph == cluster and destSubgraph == cluster:
+                        result.append('"%s" -> "%s" [ %s ];' % (
+                            source, dest, self._attributesToString(attributes)))
+            result.append("}")
         for source, arcs in self._arcs.iteritems():
             for dest, attributes in arcs.iteritems():
-                result.append('"%s" -> "%s" [ %s ];' % (
-                    source, dest, self._attributesToString(attributes)))
-        for node, attributes in self._attributes.iteritems():
-            result.append('"%s" [ %s ];' % (node, self._attributesToString(attributes)))
+                sourceSubgraph = self._attributes[source].get('cluster', None)
+                destSubgraph = self._attributes[dest].get('cluster', None)
+                if sourceSubgraph != None and sourceSubgraph != destSubgraph:
+                    result.append('"%s" -> "%s" [ %s ];' % (
+                        source, dest, self._attributesToString(attributes)))
         result.append("}")
         return "\n".join(result)
 
