@@ -20,7 +20,8 @@ class Discover:
                 self._dependencies.append(dependency)
 
     def renderText(self):
-        return "\n".join([str(d) for d in self._dependencies])
+        return "\n".join([str(d) for d in self._dependencies]) + \
+                "\n\n" + self.makeGraph().renderAsTreeText()
 
     def makeGraph(self):
         if self._cachedGraph is None:
@@ -52,7 +53,7 @@ class Discover:
         distance = mirror.distanceFromMaster(dep.hash)
         requiringBasename = gitwrapper.originURLBasename(dep.requiringURL)
         graphInstance.addArc(
-            basename, requiringBasename, style=self._lineStyleFromDependencyType(dep.type),
+            requiringBasename, basename, style=self._lineStyleFromDependencyType(dep.type),
             ** self._attributesFromDistanceFromMaster(distance))
 
     def _addNodeToGraph(self, graphInstance, gitURL):
@@ -89,8 +90,8 @@ class Discover:
             '--objectStores', self._objectStore]).strip().split("\n")
         states = [label[len(labelBase):] for label in labels]
         if 'official' in states:
-            return {}
+            return dict()
         elif 'clean' in states:
             return dict(style="filled", color="#DDDDDD", peripheries=1)
         else:
-            return dict(style="filled", color="#888888", peripheries=1)
+            return dict(style="filled", color="#888888", peripheries=1, text_build="NOT BUILT")

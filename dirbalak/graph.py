@@ -66,22 +66,27 @@ class Graph:
         result.append("}")
         return "\n".join(result)
 
-    def _digraphSource(self):
+    def _digraphSources(self):
         withoutIncomingArcs = set(self._arcs.keys()) | set(self._attributes.keys())
         for froms, dests in self._arcs.iteritems():
             for d in dests:
                 withoutIncomingArcs.discard(d)
-        assert len(withoutIncomingArcs) == 1
-        return withoutIncomingArcs.pop()
+        return withoutIncomingArcs
 
     def renderAsTreeText(self, indentation="    "):
-        result = self._treeIterate(self._digraphSource(), 0)
+        result = []
+        for source in self._digraphSources():
+            result += self._treeIterate(source, 0)
         return "\n".join(indentation * l[1] + l[0] for l in result)
 
     def _treeIterate(self, node, depth):
-        label = self._attributes.get(node, dict(label=node)).get('label', node).replace("\n", "\t")
-        result = [(label, depth)]
-        for dest in self._arcs.get(node, dict()):
+        attributes = self._attributes.get(node, dict())
+        label = attributes.get('label', node).replace("\n", "\t")
+        textAttributes = "  ".join([attributes[text] for text in attributes if text.startswith('text_')])
+        result = [(label + "  " + textAttributes, depth)]
+        for dest, attributes in self._arcs.get(node, dict()).iteritems():
+            if 'label' in attributes:
+                result.append(('VV ' + attributes['label'].replace("\\n", "  "), depth + 1))
             result += self._treeIterate(dest, depth + 1)
         return result
 
