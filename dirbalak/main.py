@@ -55,9 +55,10 @@ if args.cmd == "discover":
     if args.graphicOutput:
         graph = discoverInstance.makeGraph()
         graph.savePng(args.graphicOutput)
+        logging.info("Saved '%(graphicOutput)s'", dict(graphicOutput=args.graphicOutput))
     if args.dotOutput:
         graph = discoverInstance.makeGraph()
-        graph.savePng(args.dotOutput)
+        graph.saveDot(args.dotOutput)
 elif args.cmd == "cleanbuild":
     gitURL = gitwrapper.GitWrapper(".").originURL() if args.currentProject else args.gitURL
     cleanbuild.CleanBuild(gitURL=gitURL, hash=args.hash, submit=not args.nosubmit).go()
