@@ -2,12 +2,12 @@ from dirbalak import repomirrorcache
 import collections
 
 
-Dependency = collections.namedtuple("Dependency", "gitURL hash requiringURL requiringURLHash type")
+Dependency = collections.namedtuple(
+    "Dependency", "gitURL hash requiringURL requiringURLHash type masterHash")
 
 
 class Traverse:
-    def __init__(self, visitMaster):
-        self._visitMaster = visitMaster
+    def __init__(self):
         self._visitedTuples = set()
 
     def traverse(self, gitURL, hash):
@@ -27,13 +27,11 @@ class Traverse:
 
         dep = Dependency(
             gitURL=gitURL, hash=hash, requiringURL=requiringURL,
-            requiringURLHash=requiringURLHash, type=type)
+            requiringURLHash=requiringURLHash, type=type, masterHash=masterHash)
         yield dep
 
-        if self._visitMaster:
-            if hash != 'origin/master':
-                for x in self._traverse(gitURL, 'origin/master', None, masterHash, 'master'):
-                    yield x
+        for x in self._traverse(gitURL, 'origin/master', None, None, 'master'):
+            yield x
         for requirement in mirror.upsetoManifest(hash).requirements():
             for x in self._traverse(requirement['originURL'], requirement['hash'], gitURL, hash, 'upseto'):
                 yield x

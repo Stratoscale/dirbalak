@@ -60,7 +60,7 @@ class Graph:
             for dest, attributes in arcs.iteritems():
                 sourceSubgraph = self._attributes[source].get('cluster', None)
                 destSubgraph = self._attributes[dest].get('cluster', None)
-                if sourceSubgraph != None and sourceSubgraph != destSubgraph:
+                if sourceSubgraph is not None and sourceSubgraph != destSubgraph:
                     result.append('"%s" -> "%s" [ %s ];' % (
                         source, dest, self._attributesToString(attributes)))
         result.append("}")
@@ -102,4 +102,3 @@ if __name__ == "__main__":
     g.addArc("there", "back again")
     g.setNodeAttributes("back again", label="first line\nsecond line")
     g.savePng("/tmp/t.png")
-

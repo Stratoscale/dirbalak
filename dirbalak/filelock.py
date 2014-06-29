@@ -3,6 +3,7 @@ import os
 import contextlib
 import time
 
+
 class FileLock:
     def __init__(self, lockFile):
         self._lockFile = lockFile

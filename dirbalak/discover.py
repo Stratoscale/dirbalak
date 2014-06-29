@@ -14,7 +14,7 @@ class Discover:
         self._objectStore = objectStore
         self._dependencies = []
         self._cachedGraph = None
-        self._traverse = traverse.Traverse(visitMaster=True)
+        self._traverse = traverse.Traverse()
         for project in projects:
             for dependency in self._traverse.traverse(project, 'origin/master'):
                 self._dependencies.append(dependency)
