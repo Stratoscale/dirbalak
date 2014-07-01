@@ -27,6 +27,14 @@ class FakeMirror:
         result.requirements = lambda: self._solventRequirementsByHash[hash]
         return result
 
+    def dirbalakManifest(self, hash):
+        result = Empty()
+
+        def raiseKeyError():
+            raise KeyError("dummy")
+        result.buildRootFSRepositoryBasename = raiseKeyError
+        return result
+
 
 class Test(unittest.TestCase):
     def setUp(self):
@@ -116,6 +124,13 @@ class Test(unittest.TestCase):
             'solventDepedantProject', 'origin/master', None, None, 'root', 'master hash 2'), dependencies)
         self.assertIn(traverse.Dependency(
             'dependencilessProject', 'origin/master', None, None, 'master', 'master hash'), dependencies)
+
+    def test_CoverErrorReportingFlow(self):
+        self.mirrors['dependencilessProject'] = FakeMirror(
+            'master hash', {}, {})
+        tested = traverse.Traverse()
+        with self.assertRaises(Exception):
+            list(tested.traverse('dependencilessProject', 'origin/master'))
 
 
 if __name__ == '__main__':

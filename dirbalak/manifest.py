@@ -11,12 +11,24 @@ class Manifest:
         self._data = data
         self._directory = directory
 
-    def buildRootFS(self):
-        return self._data['buildRootFS']
+    def buildRootFSRepositoryBasename(self):
+        return self._data['BUILD_ROOTFS_REPOSITORY_BASENAME']
 
-    def setBuildRootFS(self, value):
+    def buildRootFSLabel(self):
+        return self._data['BUILD_ROOTFS_LABEL']
+
+    def setBuildRootFSRepositoryBasename(self, value):
+        if 'BUILD_ROOTFS_LABEL' in self._data:
+            raise Exception(
+                "Manifest may not contain both BUILD_ROOTFS_LABEL and BUILD_ROOTFS_REPOSITORY_BASENAME")
         self._assertBasenameInSolventRequirements(value)
-        self._data['buildRootFS'] = value
+        self._data['BUILD_ROOTFS_REPOSITORY_BASENAME'] = value
+
+    def setBuildRootFSLabel(self, value):
+        if 'BUILD_ROOTFS_REPOSITORY_BASENAME' in self._data:
+            raise Exception(
+                "Manifest may not contain both BUILD_ROOTFS_LABEL and BUILD_ROOTFS_REPOSITORY_BASENAME")
+        self._data['BUILD_ROOTFS_LABEL'] = value
 
     def save(self):
         with open(self._FILENAME, "w") as f:

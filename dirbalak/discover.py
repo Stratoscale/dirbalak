@@ -9,9 +9,14 @@ from upseto import run
 class Discover:
     _CONTINUOUS_INTEGRATION_VIOLATION_TIME = 14 * 24 * 60 * 60
 
-    def __init__(self, projects, objectStore):
+    def __init__(
+            self, projects, objectStore, clusterMap,
+            dirbalakBuildRootFSArcs=True, solventRootFSArcs=True):
         self._rootProjects = projects
         self._objectStore = objectStore
+        self._clusterMap = clusterMap
+        self._dirbalakBuildRootFSArcs = dirbalakBuildRootFSArcs
+        self._solventRootFSArcs = solventRootFSArcs
         self._dependencies = []
         self._cachedGraph = None
         self._traverse = traverse.Traverse()
@@ -21,7 +26,7 @@ class Discover:
 
     def renderText(self):
         return "\n".join([str(d) for d in self._dependencies]) + \
-                "\n\n" + self.makeGraph().renderAsTreeText()
+            "\n\n" + self.makeGraph().renderAsTreeText()
 
     def makeGraph(self):
         if self._cachedGraph is None:
@@ -44,10 +49,16 @@ class Discover:
             return 'solid'
         elif type == 'solvent':
             return 'dashed'
+        elif type == 'dirbalak_build_rootfs':
+            return 'dotted'
         else:
             raise AssertionError("Unknown type %s" % type)
 
     def _addArcToGraph(self, graphInstance, dep):
+        if not self._dirbalakBuildRootFSArcs and dep.type == "dirbalak_build_rootfs":
+            return
+        if not self._solventRootFSArcs and dep.type == 'solvent' and '/rootfs-' in dep.gitURL:
+            return
         basename = gitwrapper.originURLBasename(dep.gitURL)
         mirror = repomirrorcache.get(dep.gitURL)
         distance = mirror.distanceFromMaster(dep.hash)
@@ -59,9 +70,10 @@ class Discover:
     def _addNodeToGraph(self, graphInstance, gitURL):
         basename = gitwrapper.originURLBasename(gitURL)
         mirror = repomirrorcache.get(gitURL)
-        graphInstance.setNodeAttributes(
-            basename, label=basename, cluster=self._cluster(basename),
-            ** self._fillColor(mirror, basename))
+        attributes = dict(label=basename)
+        attributes.update(self._cluster(basename))
+        attributes.update(self._fillColor(mirror, basename))
+        graphInstance.setNodeAttributes(basename, **attributes)
 
     def _attributesFromDistanceFromMaster(self, distance):
         if distance is None:
@@ -78,7 +90,9 @@ class Discover:
             return dict(color=color, label=label)
 
     def _cluster(self, basename):
-        return 'rootfs' if basename.startswith('rootfs-') else 'projects'
+        if basename not in self._clusterMap:
+            return dict(cluster="others")
+        return dict(cluster=self._clusterMap[basename])
 
     def _fillColor(self, mirror, basename):
         if self._objectStore is None:

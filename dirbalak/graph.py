@@ -45,6 +45,7 @@ class Graph:
                 clusters.add(cluster)
         for cluster in clusters:
             result.append("subgraph cluster_%s {" % cluster)
+            result.append('label = "%s"' % cluster)
             for node, attributes in self._attributes.iteritems():
                 if attributes.get('cluster', None) == cluster:
                     result.append('"%s" [ %s ];' % (node, self._attributesToString(attributes)))

@@ -5,6 +5,7 @@ from dirbalak import setoperation
 from dirbalak import repomirrorcache
 from upseto import gitwrapper
 import logging
+import yaml
 
 logging.basicConfig(level=logging.INFO)
 
@@ -16,7 +17,15 @@ discoverCmd = subparsers.add_parser(
 discoverCmd.add_argument(
     "--currentProject", action='store_true',
     help="Add the current git project origin url to the project list to start discovery from")
-discoverCmd.add_argument("--gitURL", nargs="*", help="Add this url to the discovery project list")
+discoverCmd.add_argument(
+    "--gitURL", nargs="*", default=[], help="Add this url to the discovery project list")
+discoverCmd.add_argument(
+    "--multiverseFile",
+    help="read multiverse file, will be used only for clustering, unless "
+    "--projectsFromMultiverse is specified")
+discoverCmd.add_argument(
+    "--projectsFromMultiverse", action='store_true',
+    help="use the project list in the multiverse file")
 discoverCmd.add_argument("--graphicOutput", help="use dot to plot the output")
 discoverCmd.add_argument("--dotOutput", help="save dot file")
 discoverCmd.add_argument(
@@ -25,6 +34,12 @@ discoverCmd.add_argument(
 discoverCmd.add_argument(
     "--officialObjectStore",
     help="object store to test existance of labels in, to determine if built")
+discoverCmd.add_argument(
+    "--noDirbalakBuildRootFSArcs", action="store_true",
+    help="do not show solvent dependencies in the project dirbalak uses for clean build rootfs")
+discoverCmd.add_argument(
+    "--noSolventRootFSArcs", action="store_true",
+    help="do not show solvent dependencies in projects that starts with 'rootfs-'")
 cleanbuildCmd = subparsers.add_parser(
     "cleanbuild",
     help="cleanly build a project")
@@ -38,7 +53,12 @@ setCmd = subparsers.add_parser(
     help="set dirbalak parameters")
 setCmd.add_argument(
     "key", help="one of: "
-    "'buildRootFS' (==solvent requirement basename for rootfs product to build cleanly inside)")
+    "'buildRootFSRepositoryBasename' "
+    "(==solvent requirement basename for rootfs product to build cleanly inside) "
+    "'buildRootFSLabel' "
+    "(==solvent label for to use as a rootfs to build cleanly inside. "
+    "mutually exclusive with buildRootFSRepositoryBasename. Please do not use this but for "
+    "bootstrapping rootfs projects)")
 setCmd.add_argument("value")
 args = parser.parse_args()
 
@@ -46,11 +66,22 @@ if args.cmd == "discover":
     projects = list(args.gitURL)
     if args.currentProject:
         projects.append(gitwrapper.GitWrapper('.').originURL())
+    clusterMap = dict()
+    if args.multiverseFile:
+        with open(args.multiverseFile) as f:
+            multiverse = yaml.load(f.read())
+        clusterMap = multiverse['CLUSTER_MAP']
+        if args.projectsFromMultiverse:
+            projects += multiverse['ROOT_PROJECTS']
     if len(projects) == 0:
         raise Exception("No projects specified in command line")
     if args.noFetch:
         repomirrorcache.fetch = False
-    discoverInstance = discover.Discover(projects, objectStore=args.officialObjectStore)
+    discoverInstance = discover.Discover(
+        projects=projects, objectStore=args.officialObjectStore,
+        clusterMap=clusterMap,
+        dirbalakBuildRootFSArcs=not args.noDirbalakBuildRootFSArcs,
+        solventRootFSArcs=not args.noSolventRootFSArcs)
     print discoverInstance.renderText()
     if args.graphicOutput:
         graph = discoverInstance.makeGraph()

@@ -8,8 +8,10 @@ class SetOperation:
 
     def go(self):
         mani = manifest.Manifest.fromLocalDirOrNew()
-        if self._key == "buildRootFS":
-            mani.setBuildRootFS(self._value)
+        if self._key == "buildRootFSRepositoryBasename":
+            mani.setBuildRootFSRepositoryBasename(self._value)
+        elif self._key == "buildRootFSLabel":
+            mani.setBuildRootFSLabel(self._value)
         else:
             raise AssertionError("Unknown key %s" % self._key)
         mani.save()
