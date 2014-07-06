@@ -11,10 +11,15 @@ Dependency = collections.namedtuple(
 class Traverse:
     def __init__(self):
         self._visitedTuples = set()
+        self._dependencies = []
+
+    def dependencies(self):
+        return self._dependencies
 
     def traverse(self, gitURL, hash):
-        for x in self._traverse(gitURL, hash, None, None, 'root'):
-            yield x
+        mirror = repomirrorcache.get(gitURL)
+        hash = mirror.branchName(hash)
+        self._traverse(gitURL, hash, None, None, 'root')
 
     def _traverse(self, gitURL, hash, requiringURL, requiringURLHash, type):
         try:
@@ -25,29 +30,21 @@ class Traverse:
 
             mirror = repomirrorcache.get(gitURL)
             masterHash = mirror.hash('origin/master')
-            if hash == masterHash:
-                hash = 'origin/master'
+            hash = mirror.branchName(hash)
 
             dep = Dependency(
                 gitURL=gitURL, hash=hash, requiringURL=requiringURL,
                 requiringURLHash=requiringURLHash, type=type, masterHash=masterHash)
-            yield dep
+            self._dependencies.append(dep)
 
-            for x in self._traverse(gitURL, 'origin/master', None, None, 'master'):
-                yield x
+            self._traverse(gitURL, 'origin/master', None, None, 'master')
             for requirement in mirror.upsetoManifest(hash).requirements():
-                for x in self._traverse(
-                        requirement['originURL'], requirement['hash'], gitURL, hash, 'upseto'):
-                    yield x
-            try:
-                basenameForBuild = mirror.dirbalakManifest(hash).buildRootFSRepositoryBasename()
-            except KeyError:
-                basenameForBuild = None
+                self._traverse(requirement['originURL'], requirement['hash'], gitURL, hash, 'upseto')
+            basenameForBuild = self._basenameForBuild(mirror, hash)
             for requirement in mirror.solventManifest(hash).requirements():
                 basename = gitwrapper.originURLBasename(requirement['originURL'])
                 type = 'dirbalak_build_rootfs' if basename == basenameForBuild else 'solvent'
-                for x in self._traverse(requirement['originURL'], requirement['hash'], gitURL, hash, type):
-                    yield x
+                self._traverse(requirement['originURL'], requirement['hash'], gitURL, hash, type)
         except:
             logging.error(
                 "Exception while handling '%(gitURL)s'/%(hash)s "
@@ -55,3 +52,9 @@ class Traverse:
                     gitURL=gitURL, hash=hash, requiringURL=requiringURL, requiringURLHash=requiringURLHash,
                     type=type))
             raise
+
+    def _basenameForBuild(self, mirror, hash):
+        try:
+            return mirror.dirbalakManifest(hash).buildRootFSRepositoryBasename()
+        except KeyError:
+            return None

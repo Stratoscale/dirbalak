@@ -19,6 +19,19 @@ class Graph:
         dot.flush()
         _run(["dot", dot.name, "-Tpng", "-o", filename])
 
+    def pngAndMap(self):
+        png = tempfile.NamedTemporaryFile(suffix=".png")
+        map = tempfile.NamedTemporaryFile(suffix=".map")
+        dot = tempfile.NamedTemporaryFile(suffix=".dot")
+        dot.write(self._dotContents())
+        dot.flush()
+        _run(["dot", dot.name, "-Tcmap", "-o", map.name, "-Tpng", "-o", png.name])
+        with open(map.name) as f:
+            mapContents = f.read()
+        with open(png.name, "rb") as f:
+            pngContents = f.read()
+        return pngContents, mapContents
+
     def addArc(self, source, dest, **attributes):
         self._arcs.setdefault(source, dict())[dest] = attributes
 
@@ -27,7 +40,7 @@ class Graph:
 
     def _attributesToString(self, attributes):
         withQuotations = dict(attributes)
-        for toQuote in ['label', 'color'] + [k for k in withQuotations if k.startswith("text_")]:
+        for toQuote in ['label', 'color', 'URL'] + [k for k in withQuotations if k.startswith("text_")]:
             if toQuote in withQuotations:
                 withQuotations[toQuote] = '"' + withQuotations[toQuote] + '"'
         if 'cluster' in withQuotations:

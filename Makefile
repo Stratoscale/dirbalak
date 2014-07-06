@@ -3,8 +3,8 @@ all: unittest check_convention
 clean:
 	rm -fr build dist dirbalak.egg-info
 
-UNITTESTS=$(shell find dirbalak -name 'test_*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
-COVERED_FILES=dirbalak/traverse.py
+UNITTESTS=$(shell find py -name 'test_*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
+COVERED_FILES=py/dirbalak/traverse.py
 unittest:
 	rm -f .coverage*
 	PYTHONPATH=`pwd` COVERAGE_FILE=`pwd`/.coverage coverage run --parallel-mode --append -m unittest $(UNITTESTS)
@@ -14,14 +14,5 @@ unittest:
 check_convention:
 	pep8 . --max-line-length=109
 
-uninstall:
-	-yes | sudo pip uninstall dirbalak
-	sudo rm /usr/bin/dirbalak
-
-install:
-	-yes | sudo pip uninstall dirbalak
-	python setup.py build
-	python setup.py bdist
-	sudo python setup.py install
-	sudo cp dirbalak.sh /usr/bin/dirbalak
-	sudo chmod 755 /usr/bin/dirbalak
+test-server:
+	PYTHONPATH=py UPSETO_JOIN_PYTHON_NAMESPACES=yes python py/dirbalak/server/main.py $(ARGS)

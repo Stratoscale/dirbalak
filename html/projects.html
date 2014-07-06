@@ -1,0 +1,80 @@
+{% extends "dirbalakbase.html" %}
+
+{% block content %}
+    <h3>Projects</h3>
+    <div>
+        <p>
+            <img data-bind="attr: {src: imageSource}" usemap="#mainmap"/>
+            <map id="mainmap" name="mainmap" data-bind="html: imageMap">
+            </map>
+            <p>
+                <input type="checkbox" data-bind="checked: dirbalakBuildRootFSArcs">Dirbalak Build RootFS Arcs
+                &nbsp;
+                <input type="checkbox" data-bind="checked: solventRootFSArcs">Solvent RootFS Arcs
+            </p>
+        </p>
+    </div>
+
+    <div class="container">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>URL</th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: projects">
+                <tr>
+                    <td>
+                        <a data-bind="attr: {href: '/project/' + basename }, text: basename"></a>
+                    </td>
+                    <td>
+                        <a data-bind="attr: {href: '/project/' + basename }, text: gitURL"></a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script type="text/javascript" src="/externals/knockout-3.1.0.js"></script>
+    <script type="text/javascript" src="/realtimewebui/realtimewebui.js"></script>
+    <script>
+        function Model() {
+            var self = this;
+            self.projects = ko.observableArray([]);
+            self.dirbalakBuildRootFSArcs = ko.observable(false);
+            self.solventRootFSArcs = ko.observable(true);
+            self.imageMap = ko.observable("");
+
+            self.setProjects = function(ob) {
+                self.projects.removeAll();
+                for (var i in ob)
+                    self.projects.push(ob[i]);
+                self.projects.sort(function(left, right) {
+                    return left.basename == right.basename ? 0 : 
+                        (left.basename < right.basename ? -1 : 1);
+                });
+            };
+
+            self.imageSource = ko.computed( function() {
+                return "/graphs/allProjects/image?dirbalakBuildRootFSArcs=" + (self.dirbalakBuildRootFSArcs()?"yes":"") +
+                        "&solventRootFSArcs=" + (self.solventRootFSArcs()?"yes":"");
+            });
+            self.updateMap = function() {
+                url = "/graphs/allProjects/map?dirbalakBuildRootFSArcs=" + (self.dirbalakBuildRootFSArcs()?"yes":"") +
+                        "&solventRootFSArcs=" + (self.solventRootFSArcs()?"yes":"");
+                $.ajax({url: url}).done(function(data) {
+                    self.imageMap(data);
+                });
+            };
+            self.dirbalakBuildRootFSArcs.subscribe(self.updateMap);
+            self.solventRootFSArcs.subscribe(self.updateMap);
+            self.updateMap();
+        }
+        var model = new Model();
+        ko.applyBindings(model);
+        var ui = new RealTimeWebUI();
+        ui.register("projectsList", model.setProjects);
+    </script>
+
+{% endblock %}

@@ -18,6 +18,9 @@ class RepoMirror:
         self._lock = filelock.FileLock(self._cloneDirectory + ".lock")
         self._git = None
 
+    def gitURL(self):
+        return self._gitURL
+
     def existing(self):
         with self._lock.lock(timeout=self._LOCK_TIMEOUT):
             if not os.path.isdir(self._cloneDirectory):
@@ -52,6 +55,13 @@ class RepoMirror:
         with self._lock.lock(timeout=self._LOCK_TIMEOUT):
             return self._git.hash(branch)
 
+    def branchName(self, hash):
+        masterHash = self.hash('origin/master')
+        if hash == masterHash:
+            return 'origin/master'
+        else:
+            return hash
+
     def replicate(self, destination):
         with self._lock.lock(timeout=self._LOCK_TIMEOUT):
             run.run(["sudo", "cp", "-a", self._cloneDirectory, destination + "/"])
@@ -61,14 +71,15 @@ class RepoMirror:
             self._git.checkout(hash)
             return run.run(command, cwd=self._git.directory())
 
+    def commitTimestamp(self, hash):
+        return int(self._git.run(['log', '-1', '--pretty=tformat:%at', hash]).strip())
+
     def distanceFromMaster(self, hash):
         with self._lock.lock(timeout=self._LOCK_TIMEOUT):
             if hash == 'origin/master' or hash == self._git.hash('origin/master'):
                 return None
             result = {}
-            masterTimestamp = self._git.run(['log', '-1', '--pretty=tformat:%at', 'origin/master'])
-            hashTimestamp = self._git.run(['log', '-1', '--pretty=tformat:%at', hash])
-            timeDeltaSeconds = int(masterTimestamp.strip()) - int(hashTimestamp.strip())
+            timeDeltaSeconds = self.commitTimestamp('origin/master') - self.commitTimestamp(hash)
             if timeDeltaSeconds > 0:
                 result['time'] = timeDeltaSeconds
             left, right = self._git.run(

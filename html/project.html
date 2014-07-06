@@ -1,0 +1,104 @@
+{% extends "dirbalakbase.html" %}
+
+{% block content %}
+    <div class="container">
+        <h2>{{ project }}</h2>
+        <div>
+            Last Commit: 
+            <span data-bind="text: lastCommitText()"></span> Ago
+            (<span data-bind="text: lastCommit().toLocaleString()"></span>)
+        </div>
+
+        <div data-bind="if: dependsOn().length > 0">
+            Depends On:
+            <ul data-bind="foreach: dependsOn">
+                <li>
+                    <a data-bind="attr: {href: '/project/' + basename }, text: basename"></a>
+                    (<span data-bind="text: type"></span> Dependency)
+                    <span data-bind="if: distanceFromMaster">
+                        <span data-bind="text: distanceFromMaster.commits"></span> Commit Behind
+                        <span data-bind="text: secondsToDescription( distanceFromMaster.time )"></span> Behind
+                        (<span data-bind="text: hash"></span>)
+                    </span>
+                    <span data-bind="if: ! distanceFromMaster">
+                        Latest Master
+                    </span>
+                </li>
+            </ul>
+        </div>
+        <div data-bind="if: dependsOn().length == 0">
+            Does not depend on any other projects
+        </div>
+
+        <div data-bind="if: dependedBy().length > 0">
+            Depended By:
+            <ul data-bind="foreach: dependedBy">
+                <li>
+                    <a data-bind="attr: {href: '/project/' + basename }, text: basename"></a>
+                    (<span data-bind="text: type"></span> Dependency)
+                    <span data-bind="if: distanceFromMaster">
+                        <span data-bind="text: distanceFromMaster.commits"></span> Commit Behind
+                        <span data-bind="text: secondsToDescription( distanceFromMaster.time )"></span> Behind
+                        (<span data-bind="text: hash"></span>)
+                    </span>
+                    <span data-bind="if: ! distanceFromMaster">
+                        Latest Master
+                    </span>
+                </li>
+            </ul>
+        </div>
+        <div data-bind="if: dependedBy().length == 0">
+            Is not dependent by any other projects
+        </div>
+
+    </div>
+
+    <script type="text/javascript" src="/externals/knockout-3.1.0.js"></script>
+    <script type="text/javascript" src="/realtimewebui/realtimewebui.js"></script>
+    <script>
+        function secondsToDescription(seconds) {
+            if (seconds / 60 / 60 / 24 >= 1)
+                return "" + Math.round(seconds / 60 / 60 / 24) + " Days";
+            else
+                return "" + Math.round(seconds / 60 / 60) + " Hours";
+        }
+        function typeThenBasename(left, right) {
+            var values = {upseto: 0, solvent: 1, dirbalak_build_rootfs:2};
+            if (left.type != right.type)
+                return values[left.type] < values[right.type] ? -1 : 1;
+            return left.basename < right.basename ? -1 : 1;
+        }
+        var projectBasenameArgument = "{{project}}";
+        function Model(project) {
+            var self = this;
+            self.project = project;
+            self.dependsOn = ko.observableArray([]);
+            self.dependedBy = ko.observableArray([]);
+            self.lastCommit = ko.observable(new Date(0));
+
+            self.lastCommitText = ko.computed( function() {
+                var now = (new Date()).getTime() / 1000;
+                var lastCommit = self.lastCommit().getTime() / 1000;
+                return secondsToDescription(now - lastCommit);
+            });
+
+            self.setData = function(ob) {
+z = ob;
+                self.dependsOn.removeAll();
+                self.dependedBy.removeAll();
+                for (var i in ob.dependsOn)
+                    self.dependsOn.push(ob.dependsOn[i]);
+                self.dependsOn.sort(typeThenBasename);
+                for (var i in ob.dependedBy)
+                    self.dependedBy.push(ob.dependedBy[i]);
+                self.dependedBy.sort(typeThenBasename);
+                self.lastCommit(new Date(ob.lastCommit*1000));
+            };
+        }
+        var model = new Model("{{project}}");
+        ko.applyBindings(model);
+        var ui = new RealTimeWebUI();
+        ui.register("project/{{project}}", model.setData);
+    </script>
+
+{% endblock %}

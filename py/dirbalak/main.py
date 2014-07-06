@@ -3,6 +3,7 @@ from dirbalak import discover
 from dirbalak import cleanbuild
 from dirbalak import setoperation
 from dirbalak import repomirrorcache
+from dirbalak import unreferencedlabels
 from upseto import gitwrapper
 import logging
 import yaml
@@ -60,6 +61,13 @@ setCmd.add_argument(
     "mutually exclusive with buildRootFSRepositoryBasename. Please do not use this but for "
     "bootstrapping rootfs projects)")
 setCmd.add_argument("value")
+unreferencedLabelsCmd = subparsers.add_parser(
+    "unreferencedLabels", help="Find which labels are not referenced")
+unreferencedLabelsCmd.add_argument("--multiverseFile", required=True)
+unreferencedLabelsCmd.add_argument("--objectStore", required=True)
+unreferencedLabelsCmd.add_argument(
+    "--noFetch", action="store_true",
+    help="dont git fetch anything, use already fetched data only")
 args = parser.parse_args()
 
 if args.cmd == "discover":
@@ -95,5 +103,14 @@ elif args.cmd == "cleanbuild":
     cleanbuild.CleanBuild(gitURL=gitURL, hash=args.hash, submit=not args.nosubmit).go()
 elif args.cmd == "set":
     setoperation.SetOperation(key=args.key, value=args.value).go()
+elif args.cmd == "unreferencedLabels":
+    if args.noFetch:
+        repomirrorcache.fetch = False
+    with open(args.multiverseFile) as f:
+        multiverse = yaml.load(f.read())
+    instance = unreferencedlabels.UnreferencedLabels(
+        projects=multiverse['ROOT_PROJECTS'], objectStore=args.objectStore)
+    for label in instance.unreferencedLabels():
+        print label
 else:
     assert False, "command mismatch"
