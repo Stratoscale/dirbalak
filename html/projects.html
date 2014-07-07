@@ -1,8 +1,11 @@
 {% extends "dirbalakbase.html" %}
 
 {% block content %}
-    <h3>Projects</h3>
-    <div>
+    <div class="container">
+        <h3>Projects</h3>
+    </div>
+
+    <div style="text-align: center">
         <p>
             <img data-bind="attr: {src: imageSource}" usemap="#mainmap"/>
             <map id="mainmap" name="mainmap" data-bind="html: imageMap">
@@ -21,6 +24,8 @@
                 <tr>
                     <th>Name</th>
                     <th>URL</th>
+                    <th>Owner</th>
+                    <th>Group</th>
                 </tr>
             </thead>
             <tbody data-bind="foreach: projects">
@@ -31,9 +36,15 @@
                     <td>
                         <a data-bind="attr: {href: '/project/' + basename }, text: gitURL"></a>
                     </td>
+                    <td data-bind="text: owner"></td>
+                    <td data-bind="text: group"></td>
                 </tr>
             </tbody>
         </table>
+
+        <div>
+            <button data-bind="click: requestFetch" class="btn btn-primary">Request All Projects Fetch</button>
+        </div>
     </div>
 
     <script type="text/javascript" src="/externals/knockout-3.1.0.js"></script>
@@ -70,6 +81,11 @@
             self.dirbalakBuildRootFSArcs.subscribe(self.updateMap);
             self.solventRootFSArcs.subscribe(self.updateMap);
             self.updateMap();
+
+            self.requestFetch = function() {
+                areYouSureModal("Request Fetch", "Fetching all project is VERY expensive. Are you sure you require it now?", "Fetch",
+                        function(){ ui.command('userRequestsFetchAll', {}); });
+            };
         }
         var model = new Model();
         ko.applyBindings(model);

@@ -1,22 +1,22 @@
 from realtimewebui import server
-from realtimewebui import model
 from realtimewebui import rootresource
 from realtimewebui import render
-from realtimewebui import callbacks
 import argparse
 from dirbalak.server import fetchthread
 from dirbalak.server import multiverse
 from dirbalak.server import resources
 from dirbalak.server import graphsresource
+from dirbalak.server import model
+from dirbalak.server import callbacks
 import logging
 
 logging.basicConfig(level=logging.INFO)
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--webPort", type=int, default=60001)
-parser.add_argument("--webSocketPort", type=int, default=60002)
-parser.add_argument("--reservePort", type=int, default=60003)
-parser.add_argument("--githubListenerPort", type=int, default=60004)
+parser.add_argument("--webPort", type=int, default=6001)
+parser.add_argument("--webSocketPort", type=int, default=6002)
+parser.add_argument("--reservePort", type=int, default=6003)
+parser.add_argument("--githubListenerPort", type=int, default=6004)
 parser.add_argument("--username", default="stratotest")
 parser.add_argument("--password", default="2good2betruebettercallchucknorris")
 parser.add_argument("--multiverseFile", required=True)
@@ -27,8 +27,9 @@ theModel = model.Model()
 fetchThread = fetchthread.FetchThread()
 multiverseInstance = multiverse.Multiverse.load(
     args.multiverseFile, fetchThread=fetchThread, model=theModel)
-multiverseInstance.needsFetch()
+multiverseInstance.needsFetch("Dirbalak starting")
 fetchThread.start(multiverseInstance)
+callbacks.Callbacks(multiverseInstance)
 
 render.addTemplateDir("html")
 render.DEFAULTS['title'] = "Dirbalak"

@@ -23,7 +23,8 @@ class Project:
     def basename(self):
         return self._basename
 
-    def needsFetch(self):
+    def needsFetch(self, reason):
+        self._model.appendEvent("project/" + self._basename, "Needs Fetch due to %s" % reason)
         self._fetchThread.enqueue(self._mirror)
 
     def setTraverse(self, traverse):
@@ -31,20 +32,16 @@ class Project:
         self._addToProjectsList()
         asDict = dict(
             name=self._basename,
+            gitURL=self._gitURL, owner=self._owner, group=self._group,
             lastCommit=self._mirror.commitTimestamp('origin/master'),
             dependsOn=self._dependsOn(), dependedBy=self._dependedBy())
         self._model.set("project/%s" % self._basename, asDict)
 
     def _addToProjectsList(self):
-        projectsList = self._model.get("projectsList")
-        if projectsList is None:
-            projectsList = []
-        urls = [p['gitURL'] for p in projectsList]
-        if self._gitURL not in urls:
-            project = dict(
-                basename=self._basename, gitURL=self._gitURL,
-                owner=self._owner, group=self._group)
-            self._model.set("projectsList", projectsList + [project])
+        project = dict(
+            basename=self._basename, gitURL=self._gitURL,
+            owner=self._owner, group=self._group)
+        self._model.addToProjectsList(project)
 
     def _dependsOn(self):
         result = []

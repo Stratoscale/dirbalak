@@ -30,6 +30,6 @@ class Multiverse:
     def getTraverse(self):
         return self._traverse
 
-    def needsFetch(self):
+    def needsFetch(self, reason):
         for project in self.projects.values():
-            project.needsFetch()
+            project.needsFetch(reason)

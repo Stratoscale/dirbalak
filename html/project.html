@@ -3,10 +3,19 @@
 {% block content %}
     <div class="container">
         <h2>{{ project }}</h2>
+
         <div>
             Last Commit: 
             <span data-bind="text: lastCommitText()"></span> Ago
             (<span data-bind="text: lastCommit().toLocaleString()"></span>)
+        </div>
+
+        <div>
+            Owner:
+            <span data-bind="text: owner"></span>
+            &nbsp;
+            Group:
+            <span data-bind="text: group"></span>
         </div>
 
         <div data-bind="if: dependsOn().length > 0">
@@ -51,6 +60,20 @@
             Is not dependent by any other projects
         </div>
 
+        <div>
+            Last Events:
+            <ul data-bind="foreach: events">
+                <li>
+                    <span data-bind="text: time.toLocaleString()"></span>
+                    -
+                    <span data-bind="text: text"></span>
+                </li>
+            </ul>
+        </div>
+
+        <div>
+            <button data-bind="click: requestFetch" class="btn btn-primary">Request Fetch</button>
+        </div>
     </div>
 
     <script type="text/javascript" src="/externals/knockout-3.1.0.js"></script>
@@ -75,6 +98,9 @@
             self.dependsOn = ko.observableArray([]);
             self.dependedBy = ko.observableArray([]);
             self.lastCommit = ko.observable(new Date(0));
+            self.owner = ko.observable("");
+            self.group = ko.observable("");
+            self.events = ko.observableArray([]);
 
             self.lastCommitText = ko.computed( function() {
                 var now = (new Date()).getTime() / 1000;
@@ -93,12 +119,26 @@ z = ob;
                     self.dependedBy.push(ob.dependedBy[i]);
                 self.dependedBy.sort(typeThenBasename);
                 self.lastCommit(new Date(ob.lastCommit*1000));
+                self.owner(ob.owner);
+                self.group(ob.group);
+            };
+
+            self.setEvents = function(ob) {
+                self.events.removeAll();
+                for ( var i = ob.length - 1; i >= 0; i -= 1 )
+                    self.events.push({time: new Date(ob[i].time * 1000), text: ob[i].text});
+            };
+
+            self.requestFetch = function() {
+                areYouSureModal("Request Fetch", "Fetching is expensive. Are you sure you require it now?", "Fetch",
+                        function(){ ui.command('userRequestsFetch', {project: self.project}); });
             };
         }
         var model = new Model("{{project}}");
         ko.applyBindings(model);
         var ui = new RealTimeWebUI();
         ui.register("project/{{project}}", model.setData);
+        ui.register("events/project/{{project}}", model.setEvents);
     </script>
 
 {% endblock %}
