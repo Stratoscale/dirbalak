@@ -1,0 +1,76 @@
+{% extends "dirbalakbase.html" %}
+
+{% block content %}
+    <div class="container">
+        <h2>Queue</h2>
+
+        <div data-bind="foreach: { data: priorities, as: 'priority' }">
+            <div data-bind="if: model.queue()[priority.value] !== undefined && model.queue()[priority.value].length > 0">
+                <span data-bind="text: priority.label"></span>
+                <ul data-bind="foreach: { data: model.queue()[priority.value], as: 'item' }">
+                    <li>
+                        <a data-bind="attr: {href: '/project/' + item.basename }, text: item.basename"></a>
+                        <span data-bind="if: item.requiringBasename !== undefined">
+                            (<span data-bind="text: item.hash"></span>) by
+                            <a data-bind="attr: {href: '/project/' + item.requiringBasename }, text: item.requiringBasename"></a>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+            <div data-bind="if: model.queue()[priority.value] === undefined || model.queue()[priority.value].length == 0">
+                <span data-bind="text: priority.noItemsLabel"></span>
+            </div>
+        </div>
+
+        <div>
+            Last Events:
+            <ul data-bind="foreach: events">
+                <li>
+                    <span data-bind="text: time.toLocaleString()"></span>
+                    -
+                    <span data-bind="text: text"></span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="/externals/knockout-3.1.0.js"></script>
+    <script type="text/javascript" src="/realtimewebui/realtimewebui.js"></script>
+    <script>
+        var priorities = [
+            {value: 1,
+                label: "Dependencies on non-masters required to build another projects master:",
+                noItemsLabel: "All dependencies of all masters are met"},
+            {value: 2,
+                label: "Masters not yet built:",
+                noItemsLabel: "All masters are built"},
+            {value: 4,
+                label: "Masters to rebuild:",
+                noItemsLabel: "No masters to rebuild"}];
+
+        function Model() {
+            var self = this;
+            self.queue = ko.observable(new Object());
+            self.priorities = priorities;
+            self.events = ko.observableArray([]);
+
+            self.setData = function(ob) {
+                self.queue(ob);
+            };
+
+            self.setEvents = function(ob) {
+                if ( ! ob )
+                    return;
+                self.events.removeAll();
+                for ( var i = ob.length - 1; i >= 0; i -= 1 )
+                    self.events.push({time: new Date(ob[i].time * 1000), text: ob[i].text});
+            };
+        }
+        var model = new Model();
+        ko.applyBindings(model);
+        var ui = new RealTimeWebUI();
+        ui.register("queue/queue", model.setData);
+        ui.register("events/queue", model.setEvents);
+    </script>
+
+{% endblock %}
