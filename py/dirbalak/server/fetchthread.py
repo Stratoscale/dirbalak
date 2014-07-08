@@ -30,7 +30,7 @@ class FetchThread(threading.Thread):
 
     def _work(self):
         mirror = self._queue.get()
-        logging.info("Fetching gitURL %(url)s", dict(url = mirror.gitURL()))
+        logging.info("Fetching gitURL %(url)s", dict(url=mirror.gitURL()))
         mirror.fetch()
         hash = mirror.hash('origin/master')
         if hash != self._hashes.get(mirror.gitURL(), None):

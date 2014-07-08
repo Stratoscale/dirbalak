@@ -36,7 +36,7 @@ class _AllProjects(resource.Resource):
                 solventRootFSArcs=solventRootFSArcs,
                 dirbalakBuildRootFSArcs=dirbalakBuildRootFSArcs).dependencies()
             attributesCallback = multiversegraphnodeattributes.MultiverseGraphNodeAttributes(
-                    self._multiverse).attributes
+                self._multiverse).attributes
             graph = dependencygraph.DependencyGraph(filtered, attributesCallback).makeGraph()
             self._cache[(solventRootFSArcs, dirbalakBuildRootFSArcs)] = graph.pngAndMap()
         return self._cache[(solventRootFSArcs, dirbalakBuildRootFSArcs)]

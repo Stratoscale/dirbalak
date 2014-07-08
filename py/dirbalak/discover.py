@@ -1,7 +1,7 @@
 from dirbalak import traverse
-from dirbalak import graph
 from dirbalak import repomirrorcache
-from dirbalak import describetime
+from dirbalak import dependencygraph
+from dirbalak import traversefilter
 from upseto import gitwrapper
 from upseto import run
 
@@ -15,75 +15,26 @@ class Discover:
         self._clusterMap = clusterMap
         self._dirbalakBuildRootFSArcs = dirbalakBuildRootFSArcs
         self._solventRootFSArcs = solventRootFSArcs
-        self._cachedGraph = None
-        self._traverse = traverse.Traverse()
+        traverseInstance = traverse.Traverse()
         for project in projects:
-            self._traverse.traverse(project, 'origin/master')
+            traverseInstance.traverse(project, 'origin/master')
+        filter = traversefilter.TraverseFilter(
+            traverseInstance, dirbalakBuildRootFSArcs=dirbalakBuildRootFSArcs,
+            solventRootFSArcs=solventRootFSArcs)
+        self._graph = dependencygraph.DependencyGraph(filter.dependencies(), self._nodeAttributes)
 
     def renderText(self):
-        return "\n".join([str(d) for d in self._traverse.dependencies()]) + \
-            "\n\n" + self.makeGraph().renderAsTreeText()
+        return self._graph.renderText()
 
     def makeGraph(self):
-        if self._cachedGraph is None:
-            self._cachedGraph = self._makeGraph()
-        return self._cachedGraph
+        return self._graph.makeGraph()
 
-    def _makeGraph(self):
-        graphInstance = graph.Graph()
-        for dep in self._traverse.dependencies():
-            self._addNodeToGraph(graphInstance, dep.gitURL)
-            if dep.requiringURL is not None:
-                if dep.requiringURLHash != 'origin/master':
-                    continue
-                self._addNodeToGraph(graphInstance, dep.requiringURL)
-                self._addArcToGraph(graphInstance, dep)
-        return graphInstance
-
-    def _lineStyleFromDependencyType(self, type):
-        if type == 'upseto':
-            return 'solid'
-        elif type == 'solvent':
-            return 'dashed'
-        elif type == 'dirbalak_build_rootfs':
-            return 'dotted'
-        else:
-            raise AssertionError("Unknown type %s" % type)
-
-    def _addArcToGraph(self, graphInstance, dep):
-        if not self._dirbalakBuildRootFSArcs and dep.type == "dirbalak_build_rootfs":
-            return
-        if not self._solventRootFSArcs and dep.type == 'solvent' and '/rootfs-' in dep.gitURL:
-            return
-        basename = gitwrapper.originURLBasename(dep.gitURL)
-        mirror = repomirrorcache.get(dep.gitURL)
-        distance = mirror.distanceFromMaster(dep.hash)
-        requiringBasename = gitwrapper.originURLBasename(dep.requiringURL)
-        graphInstance.addArc(
-            requiringBasename, basename, style=self._lineStyleFromDependencyType(dep.type),
-            ** self._attributesFromDistanceFromMaster(distance))
-
-    def _addNodeToGraph(self, graphInstance, gitURL):
-        basename = gitwrapper.originURLBasename(gitURL)
+    def _nodeAttributes(self, gitURL):
         mirror = repomirrorcache.get(gitURL)
-        attributes = dict(label=basename)
-        attributes.update(self._cluster(basename))
+        basename = gitwrapper.originURLBasename(mirror.gitURL())
+        attributes = self._cluster(basename)
         attributes.update(self._fillColor(mirror, basename))
-        graphInstance.setNodeAttributes(basename, **attributes)
-
-    def _attributesFromDistanceFromMaster(self, distance):
-        if distance is None:
-            return {}
-        else:
-            label = "behind:\\n%d commits" % distance['commits']
-            color = "#000000"
-            if 'time' in distance:
-                label += "\\n%s" % describetime.describeTime(distance['time'])
-                if distance['time'] > self._CONTINUOUS_INTEGRATION_VIOLATION_TIME:
-                    color = "#FF0000"
-                else:
-                    color = "#990000"
-            return dict(color=color, label=label)
+        return attributes
 
     def _cluster(self, basename):
         if basename not in self._clusterMap:

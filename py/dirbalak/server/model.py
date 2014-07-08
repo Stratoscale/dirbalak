@@ -10,7 +10,7 @@ class Model(model.Model):
         if events is None:
             events = []
         events.append(dict(time=time.time(), text=text))
-        events = events[- self.MAXIMUM_EVENTS_BACKLOG: ]
+        events = events[- self.MAXIMUM_EVENTS_BACKLOG:]
         self.set("events/%s" % eventListID, events)
 
     def addToProjectsList(self, asDict):

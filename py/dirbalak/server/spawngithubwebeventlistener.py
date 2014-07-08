@@ -38,7 +38,7 @@ class SpawnGithubWebEventListener(threading.Thread):
             githubwebeventlistener.main(self._port)
         except:
             import traceback
-            open("/tmp/stack","w").write(traceback.format_exc())
+            open("/tmp/stack", "w").write(traceback.format_exc())
             raise
 
     def run(self):

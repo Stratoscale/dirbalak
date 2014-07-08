@@ -78,9 +78,10 @@ if args.cmd == "discover":
     if args.multiverseFile:
         with open(args.multiverseFile) as f:
             multiverse = yaml.load(f.read())
-        clusterMap = multiverse['CLUSTER_MAP']
+        clusterMap = {
+            gitwrapper.originURLBasename(p['gitURL']): p['group'] for p in multiverse['PROJECTS']}
         if args.projectsFromMultiverse:
-            projects += multiverse['ROOT_PROJECTS']
+            projects += [p['gitURL'] for p in multiverse['PROJECTS']]
     if len(projects) == 0:
         raise Exception("No projects specified in command line")
     if args.noFetch:
@@ -109,7 +110,7 @@ elif args.cmd == "unreferencedLabels":
     with open(args.multiverseFile) as f:
         multiverse = yaml.load(f.read())
     instance = unreferencedlabels.UnreferencedLabels(
-        projects=multiverse['ROOT_PROJECTS'], objectStore=args.objectStore)
+        projects=[p['gitURL'] for p in multiverse['PROJECTS']], objectStore=args.objectStore)
     for label in instance.unreferencedLabels():
         print label
 else:

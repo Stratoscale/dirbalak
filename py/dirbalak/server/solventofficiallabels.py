@@ -6,7 +6,7 @@ import re
 class SolventOfficialLabels:
     def __init__(self, officialObjectStore):
         self._officialObjectStore = officialObjectStore
-        labelRegex = solvent.label.label(basename = "(.*)", product="build", hash="(.*)", state="official")
+        labelRegex = solvent.label.label(basename="(.*)", product="build", hash="(.*)", state="official")
         regex = re.compile(labelRegex)
         labels = run.run([
             'osmosis', 'listlabels', labelRegex,
