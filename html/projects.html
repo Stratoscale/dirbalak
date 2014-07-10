@@ -7,9 +7,8 @@
 
     <div style="text-align: center">
         <p>
-            <img data-bind="attr: {src: imageSource}" usemap="#mainmap"/>
-            <map id="mainmap" name="mainmap" data-bind="html: imageMap">
-            </map>
+            <div id="graph">
+            </div>
             <p>
                 <input type="checkbox" data-bind="checked: dirbalakBuildRootFSArcs">Dirbalak Build RootFS Arcs
                 &nbsp;
@@ -67,20 +66,25 @@
                 });
             };
 
-            self.imageSource = ko.computed( function() {
+            self._imageSource = function() {
                 return "/graphs/allProjects/image?dirbalakBuildRootFSArcs=" + (self.dirbalakBuildRootFSArcs()?"yes":"") +
                         "&solventRootFSArcs=" + (self.solventRootFSArcs()?"yes":"");
-            });
-            self.updateMap = function() {
+            };
+            self._updateMap = function() {
                 url = "/graphs/allProjects/map?dirbalakBuildRootFSArcs=" + (self.dirbalakBuildRootFSArcs()?"yes":"") +
                         "&solventRootFSArcs=" + (self.solventRootFSArcs()?"yes":"");
                 $.ajax({url: url}).done(function(data) {
                     self.imageMap(data);
                 });
             };
-            self.dirbalakBuildRootFSArcs.subscribe(self.updateMap);
-            self.solventRootFSArcs.subscribe(self.updateMap);
-            self.updateMap();
+            self.updateGraph = function() {
+                $("#graph").html('<img src="' + self._imageSource() + '" usemap="#mainmap"/>' + 
+                                '<map id="mainmap" name="mainmap" data-bind="html: imageMap"></map>');
+                self._updateMap();
+            }
+            self.dirbalakBuildRootFSArcs.subscribe(self.updateGraph);
+            self.solventRootFSArcs.subscribe(self.updateGraph);
+            self.updateGraph();
 
             self.requestFetch = function() {
                 areYouSureModal("Request Fetch", "Fetching all project is VERY expensive. Are you sure you require it now?", "Fetch",
@@ -91,6 +95,7 @@
         ko.applyBindings(model);
         var ui = new RealTimeWebUI();
         ui.register("projectsList", model.setProjects);
+        ui.register("graph/generatio", model.updateGraph);
     </script>
 
 {% endblock %}

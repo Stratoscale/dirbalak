@@ -1,14 +1,14 @@
 from dirbalak import repomirrorcache
 from upseto import gitwrapper
+from dirbalak.server import tojs
 
 
 class Project:
-    def __init__(self, gitURL, owner, group, fetchThread, model):
+    def __init__(self, gitURL, owner, group, fetchThread):
         self._gitURL = gitURL
         self._owner = owner
         self._group = group
         self._fetchThread = fetchThread
-        self._model = model
         self._basename = gitwrapper.originURLBasename(gitURL)
         repomirrorcache.fetch = False
         self._mirror = repomirrorcache.get(gitURL)
@@ -24,7 +24,7 @@ class Project:
         return self._basename
 
     def needsFetch(self, reason):
-        self._model.appendEvent("project/" + self._basename, "Needs Fetch due to %s" % reason)
+        tojs.appendEvent("project/" + self._basename, "Needs Fetch due to %s" % reason)
         self._fetchThread.enqueue(self._mirror)
 
     def setTraverse(self, traverse):
@@ -35,13 +35,13 @@ class Project:
             gitURL=self._gitURL, owner=self._owner, group=self._group,
             lastCommit=self._mirror.commitTimestamp('origin/master'),
             dependsOn=self._dependsOn(), dependedBy=self._dependedBy())
-        self._model.set("project/%s" % self._basename, asDict)
+        tojs.set("project/%s" % self._basename, asDict)
 
     def _addToProjectsList(self):
         project = dict(
             basename=self._basename, gitURL=self._gitURL,
             owner=self._owner, group=self._group)
-        self._model.addToProjectsList(project)
+        tojs.addToProjectsList(project)
 
     def _dependsOn(self):
         result = []

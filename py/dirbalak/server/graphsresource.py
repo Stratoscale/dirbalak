@@ -2,19 +2,24 @@ from twisted.web import resource
 from dirbalak import traversefilter
 from dirbalak import dependencygraph
 from dirbalak.server import multiversegraphnodeattributes
+from dirbalak.server import tojs
 
 
 class GraphsResource(resource.Resource):
     def __init__(self, multiverse):
         resource.Resource.__init__(self)
-        self.putChild("allProjects", _AllProjects(multiverse))
+        self._allProjects = _AllProjects(multiverse)
+        self.putChild("allProjects", self._allProjects)
+
+    def update(self):
+        self._allProjects.clearCache()
+        tojs.increment("graph/generation")
 
 
 class _AllProjects(resource.Resource):
     def __init__(self, multiverse):
         self._multiverse = multiverse
         self._cache = dict()
-        self._traverse = None
         resource.Resource.__init__(self)
 
     def getChild(self, path, request):
@@ -24,15 +29,15 @@ class _AllProjects(resource.Resource):
         else:
             return _Static(png, 'image/png')
 
+    def clearCache(self):
+        self._cache = dict()
+
     def _make(self, request):
-        if self._traverse != self._multiverse.getTraverse():
-            self._cache = dict()
-            self._traverse = self._multiverse.getTraverse()
         solventRootFSArcs = request.args['solventRootFSArcs'][0]
         dirbalakBuildRootFSArcs = request.args['dirbalakBuildRootFSArcs'][0]
         if (solventRootFSArcs, dirbalakBuildRootFSArcs) not in self._cache:
             filtered = traversefilter.TraverseFilter(
-                traverse=self._traverse,
+                traverse=self._multiverse.getTraverse(),
                 solventRootFSArcs=solventRootFSArcs,
                 dirbalakBuildRootFSArcs=dirbalakBuildRootFSArcs).dependencies()
             attributesCallback = multiversegraphnodeattributes.MultiverseGraphNodeAttributes(

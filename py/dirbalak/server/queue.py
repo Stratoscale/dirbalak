@@ -1,6 +1,7 @@
 from upseto import gitwrapper
 from dirbalak.server import solventofficiallabels
 from dirbalak import repomirrorcache
+from dirbalak.server import tojs
 
 
 class Queue:
@@ -9,16 +10,16 @@ class Queue:
     MASTERS_WHICH_BUILD_ONLY_FAILED = 3
     MASTERS_REBUILD = 4
 
-    def __init__(self, model, officialObjectStore):
-        self._model = model
+    def __init__(self, officialObjectStore, multiverse):
         self._officialObjectStore = officialObjectStore
+        self._multiverse = multiverse
         self._queue = dict()
         self._reversedMap = dict()
 
-    def calculate(self, traverse):
+    def recalculate(self):
         labels = solventofficiallabels.SolventOfficialLabels(self._officialObjectStore)
         self._reversedMap = dict()
-        for dep in traverse.dependencies():
+        for dep in self._multiverse.getTraverse().dependencies():
             basename = gitwrapper.originURLBasename(dep.gitURL)
             projectDict = dict(basename=basename, hash=dep.hash)
             if dep.hash == "origin/master":
@@ -32,7 +33,7 @@ class Queue:
                     projectDict['requiringBasename'] = gitwrapper.originURLBasename(dep.requiringURL)
                     self._put(projectDict, self.NON_MASTER_DEPENDENCIES)
         self._reverseMap()
-        self._model.set('queue/queue', self._queue)
+        tojs.set('queue/queue', self._queue)
 
     def _reverseMap(self):
         queue = dict()

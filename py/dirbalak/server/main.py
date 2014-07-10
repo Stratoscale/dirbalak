@@ -6,7 +6,6 @@ from dirbalak.server import fetchthread
 from dirbalak.server import multiverse
 from dirbalak.server import resources
 from dirbalak.server import graphsresource
-from dirbalak.server import model
 from dirbalak.server import callbacks
 from dirbalak.server import queue
 import logging
@@ -25,14 +24,13 @@ parser.add_argument("--officialObjectStore", required=True)
 parser.add_argument("--unsecured", action="store_true")
 args = parser.parse_args()
 
-theModel = model.Model()
-queueInstance = queue.Queue(theModel, args.officialObjectStore)
 fetchThread = fetchthread.FetchThread()
-multiverseInstance = multiverse.Multiverse.load(
-    args.multiverseFile, fetchThread=fetchThread, model=theModel, queue=queueInstance)
+multiverseInstance = multiverse.Multiverse.load(args.multiverseFile, fetchThread=fetchThread)
 multiverseInstance.needsFetch("Dirbalak starting")
 fetchThread.start(multiverseInstance)
 callbacks.Callbacks(multiverseInstance)
+queueInstance = queue.Queue(args.officialObjectStore, multiverseInstance)
+fetchThread.addPostTraverseCallback(queueInstance.recalculate)
 
 render.addTemplateDir("html")
 render.DEFAULTS['title'] = "Dirbalak"
@@ -41,9 +39,11 @@ render.DEFAULTS['mainMenu'] = [dict(title="Projects", href="/projects"), dict(ti
 root = rootresource.rootResource()
 root.putChild("projects", rootresource.Renderer("projects.html", dict(activeMenuItem="Projects")))
 root.putChild("project", resources.Projects())
-root.putChild("graphs", graphsresource.GraphsResource(multiverseInstance))
+graphResource = graphsresource.GraphsResource(multiverseInstance)
+root.putChild("graphs", graphResource)
+fetchThread.addPostTraverseCallback(graphResource.update)
 root.putChild("queue", rootresource.Renderer("queue.html", dict(activeMenuItem="Queue")))
 if args.unsecured:
-    server.runUnsecured(root, theModel, args.webPort, args.webSocketPort)
+    server.runUnsecured(root, args.webPort, args.webSocketPort)
 else:
-    server.runSecured(root, theModel, args.webPort, args.webSocketPort, args.username, args.password)
+    server.runSecured(root, args.webPort, args.webSocketPort, args.username, args.password)

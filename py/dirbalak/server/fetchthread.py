@@ -10,6 +10,7 @@ class FetchThread(threading.Thread):
         self._event = threading.Event()
         self._traverseNeeded = False
         self._hashes = dict()
+        self._postTraverseCallbacks = []
         threading.Thread.__init__(self)
         self.daemon = True
 
@@ -19,6 +20,9 @@ class FetchThread(threading.Thread):
 
     def enqueue(self, mirror):
         self._queue.put(mirror)
+
+    def addPostTraverseCallback(self, callback):
+        self._postTraverseCallbacks.append(callback)
 
     def run(self):
         try:
@@ -39,3 +43,5 @@ class FetchThread(threading.Thread):
         if self._traverseNeeded and self._queue.empty():
             self._traverseNeeded = False
             self._multiverse.traverse()
+            for callback in self._postTraverseCallbacks:
+                callback()
