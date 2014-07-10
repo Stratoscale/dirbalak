@@ -10,7 +10,6 @@ class Project:
         self._group = group
         self._fetchThread = fetchThread
         self._basename = gitwrapper.originURLBasename(gitURL)
-        repomirrorcache.fetch = False
         self._mirror = repomirrorcache.get(gitURL)
         self._traverse = None
 

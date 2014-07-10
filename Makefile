@@ -15,4 +15,4 @@ check_convention:
 	pep8 . --max-line-length=109
 
 test-server:
-	PYTHONPATH=py UPSETO_JOIN_PYTHON_NAMESPACES=yes python py/dirbalak/server/main.py $(ARGS)
+	PYTHONPATH=py UPSETO_JOIN_PYTHON_NAMESPACES=yes python py/dirbalak/server/main.py --multiver /home/me/multiverse.yaml --unsecured --officialObjectStore=localhost:1010
