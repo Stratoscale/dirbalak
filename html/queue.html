@@ -22,6 +22,22 @@
             </div>
         </div>
 
+        <div data-bind="if: cantBeBuilt().length > 0">
+            Can not be built:
+            <ul data-bind="foreach: cantBeBuilt">
+                <li>
+                    <a data-bind="attr: {href: '/project/' + basename }, text: basename"></a>
+                    (<span data-bind="text: hash"></span>) requires:
+                    <ul data-bind="foreach: unbuiltRequirements">
+                        <li>
+                            <a data-bind="attr: {href: '/project/' + basename }, text: basename"></a>
+                            (<span data-bind="text: hash"></span>)
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
         <div>
             Last Events:
             <ul data-bind="foreach: events">
@@ -48,14 +64,23 @@
                 label: "Masters to rebuild:",
                 noItemsLabel: "No masters to rebuild"}];
 
+        function byBasename(left, right) {
+            return left.basename == right.basename ? 0 : (left.basename < right.basename ? -1 : 1)
+        }
+
         function Model() {
             var self = this;
             self.queue = ko.observable(new Object());
+            self.cantBeBuilt = ko.observableArray([]);
             self.priorities = priorities;
             self.events = ko.observableArray([]);
 
-            self.setData = function(ob) {
+            self.setQueue = function(ob) {
                 self.queue(ob);
+            };
+            self.setCantBeBuilt = function(ob) {
+                self.cantBeBuilt(ob);
+                self.cantBeBuilt.sort(byBasename);
             };
 
             self.setEvents = function(ob) {
@@ -69,7 +94,8 @@
         var model = new Model();
         ko.applyBindings(model);
         var ui = new RealTimeWebUI();
-        ui.register("queue/queue", model.setData);
+        ui.register("queue/queue", model.setQueue);
+        ui.register("queue/cantBeBuilt", model.setCantBeBuilt);
         ui.register("events/queue", model.setEvents);
     </script>
 

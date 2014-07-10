@@ -15,13 +15,19 @@ class Queue:
         self._multiverse = multiverse
         self._queue = dict()
         self._reversedMap = dict()
+        self._cantBeBuilt = dict()
 
     def recalculate(self):
         labels = solventofficiallabels.SolventOfficialLabels(self._officialObjectStore)
         self._reversedMap = dict()
+        self._cantBeBuilt = dict()
         for dep in self._multiverse.getTraverse().dependencies():
             basename = gitwrapper.originURLBasename(dep.gitURL)
             projectDict = dict(basename=basename, hash=dep.hash)
+            unbuiltRequirements = self._unbuiltRequirements(dep.gitURL, dep.hash, labels)
+            if unbuiltRequirements:
+                self._cantBeBuilt[(basename, dep.hash)] = unbuiltRequirements
+                continue
             if dep.hash == "origin/master":
                 mirror = repomirrorcache.get(dep.gitURL)
                 if labels.built(basename, mirror.hash('origin/master')):
@@ -34,6 +40,21 @@ class Queue:
                     self._put(projectDict, self.NON_MASTER_DEPENDENCIES)
         self._reverseMap()
         tojs.set('queue/queue', self._queue)
+        tojs.set('queue/cantBeBuilt', [
+            dict(basename=basename, hash=hash, unbuiltRequirements=unbuiltRequirements)
+            for (basename, hash), unbuiltRequirements in self._cantBeBuilt.iteritems()])
+
+    def _unbuiltRequirements(self, gitURL, hash, labels):
+        result = []
+        for dep in self._multiverse.getTraverse().dependencies():
+            if dep.requiringURL != gitURL or dep.requiringURLHash != hash:
+                continue
+            basename = gitwrapper.originURLBasename(dep.gitURL)
+            mirror = repomirrorcache.get(dep.gitURL)
+            hexHash = dep.hash if dep.hash != 'origin/master' else mirror.hash('origin/master')
+            if not labels.built(basename, hexHash):
+                result.append(dict(basename=basename, hash=dep.hash))
+        return result
 
     def _reverseMap(self):
         queue = dict()
