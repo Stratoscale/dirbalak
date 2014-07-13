@@ -54,7 +54,6 @@
             self.projects = ko.observableArray([]);
             self.dirbalakBuildRootFSArcs = ko.observable(false);
             self.solventRootFSArcs = ko.observable(true);
-            self.imageMap = ko.observable("");
 
             self.setProjects = function(ob) {
                 self.projects.removeAll();
@@ -74,12 +73,12 @@
                 url = "/graphs/allProjects/map?dirbalakBuildRootFSArcs=" + (self.dirbalakBuildRootFSArcs()?"yes":"") +
                         "&solventRootFSArcs=" + (self.solventRootFSArcs()?"yes":"");
                 $.ajax({url: url}).done(function(data) {
-                    self.imageMap(data);
+                    $("#mainmap").html(data);
                 });
             };
             self.updateGraph = function() {
                 $("#graph").html('<img src="' + self._imageSource() + '" usemap="#mainmap"/>' + 
-                                '<map id="mainmap" name="mainmap" data-bind="html: imageMap"></map>');
+                                '<map id="mainmap" name="mainmap"></map>');
                 self._updateMap();
             }
             self.dirbalakBuildRootFSArcs.subscribe(self.updateGraph);
