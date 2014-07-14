@@ -1,9 +1,9 @@
-all: unittest check_convention
+all: build unittest check_convention
 
 clean:
-	rm -fr build dist dirbalak.egg-info
+	rm -fr build
 
-UNITTESTS=$(shell find py -name 'test_*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
+UNITTESTS=$(shell cd py; find py -name 'test_*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
 COVERED_FILES=py/dirbalak/traverse.py
 unittest:
 	rm -f .coverage*
@@ -16,3 +16,11 @@ check_convention:
 
 test-server:
 	PYTHONPATH=py UPSETO_JOIN_PYTHON_NAMESPACES=yes python py/dirbalak/server/main.py --multiver /home/me/multiverse.yaml --unsecured --officialObjectStore=localhost:1010
+
+.PHONY: build
+build: build/dirbalakbuild.egg
+
+build/dirbalakbuild.egg: py/dirbalak/main.py
+	-mkdir $(@D)
+	PYTHONPATH=py python -m upseto.packegg --entryPoint=$< --output=$@ --createDeps=$@.dep --compile_pyc --joinPythonNamespaces
+-include build/dirbalakbuild.egg.dep

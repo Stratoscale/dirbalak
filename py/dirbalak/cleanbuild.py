@@ -18,7 +18,7 @@ class CleanBuild:
         self._mirror = repomirrorcache.get(self._gitURL)
 
     def go(self):
-        os.environ['SOLVENT_CLEAN'] = 'Yes'
+        self._configureEnvironment()
         self._verifiyDependenciesExist()
         buildRootFSLabel = self._findBuildRootFSLabel()
         self._unmountBinds()
@@ -27,6 +27,7 @@ class CleanBuild:
         self._checkOutDependencies(git)
         self._mountBinds()
         try:
+            self._upsetoCheckRequirements(git)
             self._make(git)
             if self._submit:
                 logging.info("Submitting")
@@ -54,6 +55,8 @@ class CleanBuild:
             "--destination", config.BUILD_CHROOT])
         run.run([
             "sudo", "cp", "-a", "/etc/hosts", "/etc/resolv.conf", os.path.join(config.BUILD_CHROOT, "etc")])
+        run.run([
+            "sudo", "sed", 's/.*requiretty.*//', "-i", os.path.join(config.BUILD_CHROOT, "etc", "sudoers")])
         with open("/etc/solvent.conf") as f:
             contents = f.read()
         modified = re.sub("LOCAL_OSMOSIS:.*", "LOCAL_OSMOSIS: localhost:1010", contents)
@@ -72,6 +75,14 @@ class CleanBuild:
         git = gitwrapper.GitWrapper.existing(self._gitURL, config.BUILD_DIRECTORY)
         git.checkout(self._hash)
         return git
+
+    def _upsetoCheckRequirements(self, git):
+        relative = git.directory()[len(config.BUILD_CHROOT):]
+        if os.path.exists(os.path.join(git.directory(), "upseto.manifest")):
+            logging.info("Verifying upseto requirements")
+            run.run([
+                "sudo", "chroot", config.BUILD_CHROOT, "sh", "-c",
+                "cd %s; upseto checkRequirements --show" % relative])
 
     def _make(self, git, arguments=""):
         relative = git.directory()[len(config.BUILD_CHROOT):]
@@ -114,3 +125,8 @@ class CleanBuild:
             run.run([
                 "sudo", "mount", "-o", "bind", "/" + mountBind,
                 os.path.join(config.BUILD_CHROOT, mountBind)])
+
+    def _configureEnvironment(self):
+        if 'OFFICIAL' in os.environ.get('SOLVENT_CONFIG', ""):
+            return
+        os.environ['SOLVENT_CLEAN'] = 'Yes'

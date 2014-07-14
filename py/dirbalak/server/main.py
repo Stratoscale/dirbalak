@@ -8,6 +8,7 @@ from dirbalak.server import resources
 from dirbalak.server import graphsresource
 from dirbalak.server import callbacks
 from dirbalak.server import queue
+from dirbalak.server import scriptologresource
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -39,6 +40,7 @@ render.DEFAULTS['mainMenu'] = [dict(title="Projects", href="/projects"), dict(ti
 root = rootresource.rootResource()
 root.putChild("projects", rootresource.Renderer("projects.html", dict(activeMenuItem="Projects")))
 root.putChild("project", resources.Projects())
+root.putChild("scriptolog", scriptologresource.ScriptologResource(multiverseInstance))
 graphResource = graphsresource.GraphsResource(multiverseInstance)
 root.putChild("graphs", graphResource)
 fetchThread.addPostTraverseCallback(graphResource.update)

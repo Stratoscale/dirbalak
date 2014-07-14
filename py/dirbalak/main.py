@@ -4,6 +4,8 @@ from dirbalak import cleanbuild
 from dirbalak import setoperation
 from dirbalak import repomirrorcache
 from dirbalak import unreferencedlabels
+from dirbalak import traverse
+from dirbalak import scriptolog
 from upseto import gitwrapper
 import logging
 import yaml
@@ -68,6 +70,12 @@ unreferencedLabelsCmd.add_argument("--objectStore", required=True)
 unreferencedLabelsCmd.add_argument(
     "--noFetch", action="store_true",
     help="dont git fetch anything, use already fetched data only")
+scriptologCmd = subparsers.add_parser(
+    "scriptolog",
+    help="render a script")
+scriptSubparser = scriptologCmd.add_subparsers(dest="script")
+updateAllDependenciesScript = scriptSubparser.add_parser("updateAllDependencies")
+updateAllDependenciesScript.add_argument("--gitURL")
 args = parser.parse_args()
 
 if args.cmd == "discover":
@@ -113,5 +121,13 @@ elif args.cmd == "unreferencedLabels":
         projects=[p['gitURL'] for p in multiverse['PROJECTS']], objectStore=args.objectStore)
     for label in instance.unreferencedLabels():
         print label
+elif args.cmd == "scriptolog":
+    logging.getLogger().setLevel(logging.ERROR)
+    if args.script == "updateAllDependencies":
+        traverseInstance = traverse.Traverse()
+        traverseInstance.traverse(args.gitURL, 'origin/master')
+        print scriptolog.Scriptolog(traverseInstance).updateAllDependencies(args.gitURL)
+    else:
+        raise AssertionError("Unknown script")
 else:
     assert False, "command mismatch"
