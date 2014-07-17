@@ -17,6 +17,12 @@ class FakeMirror:
         assert expectedBranchName == "origin/master"
         return self._masterHash
 
+    def branchName(self, hash):
+        if hash == self._masterHash:
+            return 'origin/master'
+        else:
+            return hash
+
     def upsetoManifest(self, hash):
         result = Empty()
         result.requirements = lambda: self._upsetoRequirementsByHash[hash]
@@ -48,9 +54,9 @@ class Test(unittest.TestCase):
         self.mirrors['dependencilessProject'] = FakeMirror(
             'master hash', {'origin/master': []}, {'origin/master': []})
         tested = traverse.Traverse()
-        dependencies = list(tested.traverse('dependencilessProject', 'origin/master'))
-        self.assertEquals(len(dependencies), 1)
-        self.assertEquals(dependencies[0], traverse.Dependency(
+        tested.traverse('dependencilessProject', 'origin/master')
+        self.assertEquals(len(tested.dependencies()), 1)
+        self.assertEquals(tested.dependencies()[0], traverse.Dependency(
             'dependencilessProject', 'origin/master', None, None, 'root', 'master hash'))
 
     def test_UpsetoRequirement_MasterToMaster(self):
@@ -61,7 +67,8 @@ class Test(unittest.TestCase):
         self.mirrors['dependencilessProject'] = FakeMirror(
             'master hash', {'origin/master': []}, {'origin/master': []})
         tested = traverse.Traverse()
-        dependencies = list(tested.traverse('upsetoDepedantProject', 'origin/master'))
+        tested.traverse('upsetoDepedantProject', 'origin/master')
+        dependencies = tested.dependencies()
         self.assertEquals(len(dependencies), 3)
         self.assertIn(traverse.Dependency(
             'dependencilessProject', 'origin/master', 'upsetoDepedantProject',
@@ -80,7 +87,8 @@ class Test(unittest.TestCase):
             'master hash', {'origin/master': [], 'non master hash': []},
             {'origin/master': [], 'non master hash': []})
         tested = traverse.Traverse()
-        dependencies = list(tested.traverse('upsetoDepedantProject', 'origin/master'))
+        tested.traverse('upsetoDepedantProject', 'origin/master')
+        dependencies = tested.dependencies()
         self.assertEquals(len(dependencies), 3)
         self.assertIn(traverse.Dependency(
             'dependencilessProject', 'non master hash', 'upsetoDepedantProject',
@@ -97,7 +105,8 @@ class Test(unittest.TestCase):
         self.mirrors['dependencilessProject'] = FakeMirror(
             'master hash', {'origin/master': []}, {'origin/master': []})
         tested = traverse.Traverse()
-        dependencies = list(tested.traverse('solventDepedantProject', 'origin/master'))
+        tested.traverse('solventDepedantProject', 'origin/master')
+        dependencies = tested.dependencies()
         self.assertEquals(len(dependencies), 3)
         self.assertIn(traverse.Dependency(
             'dependencilessProject', 'origin/master', 'solventDepedantProject',
@@ -115,7 +124,8 @@ class Test(unittest.TestCase):
             'master hash', {'origin/master': [], 'non master hash': []},
             {'origin/master': [], 'non master hash': []})
         tested = traverse.Traverse()
-        dependencies = list(tested.traverse('solventDepedantProject', 'origin/master'))
+        tested.traverse('solventDepedantProject', 'origin/master')
+        dependencies = tested.dependencies()
         self.assertEquals(len(dependencies), 3)
         self.assertIn(traverse.Dependency(
             'dependencilessProject', 'non master hash', 'solventDepedantProject',
@@ -130,7 +140,7 @@ class Test(unittest.TestCase):
             'master hash', {}, {})
         tested = traverse.Traverse()
         with self.assertRaises(Exception):
-            list(tested.traverse('dependencilessProject', 'origin/master'))
+            tested.traverse('dependencilessProject', 'origin/master')
 
 
 if __name__ == '__main__':

@@ -10,6 +10,7 @@
                 <ul data-bind="foreach: { data: model.queue()[priority.value], as: 'item' }">
                     <li>
                         <a data-bind="attr: {href: '/project/' + item.basename }, text: item.basename"></a>
+                        <span data-bind="if: item.inProgress">IN PROGRESS</span>
                         <span data-bind="if: item.requiringBasename !== undefined">
                             (<span data-bind="text: item.hash"></span>) by
                             <a data-bind="attr: {href: '/project/' + item.requiringBasename }, text: item.requiringBasename"></a>
@@ -27,7 +28,8 @@
             <ul data-bind="foreach: cantBeBuilt">
                 <li>
                     <a data-bind="attr: {href: '/project/' + basename }, text: basename"></a>
-                    (<span data-bind="text: hash"></span>) requires:
+                    (<span data-bind="text: hash"></span>)
+                    requires:
                     <ul data-bind="foreach: unbuiltRequirements">
                         <li>
                             <a data-bind="attr: {href: '/project/' + basename }, text: basename"></a>

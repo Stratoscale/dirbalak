@@ -19,7 +19,7 @@ class CleanBuild:
 
     def go(self):
         self._configureEnvironment()
-        self._verifiyDependenciesExist()
+        self._verifyDependenciesExist()
         buildRootFSLabel = self._findBuildRootFSLabel()
         self._unmountBinds()
         self._checkOutBuildRootFS(buildRootFSLabel)
@@ -45,7 +45,7 @@ class CleanBuild:
         finally:
             self._unmountBinds()
 
-    def _verifiyDependenciesExist(self):
+    def _verifyDependenciesExist(self):
         self._mirror.run(["solvent", "checkrequirements"], hash=self._hash)
 
     def _checkOutBuildRootFS(self, buildRootFSLabel):
@@ -59,7 +59,8 @@ class CleanBuild:
             "sudo", "sed", 's/.*requiretty.*//', "-i", os.path.join(config.BUILD_CHROOT, "etc", "sudoers")])
         with open("/etc/solvent.conf") as f:
             contents = f.read()
-        modified = re.sub("LOCAL_OSMOSIS:.*", "LOCAL_OSMOSIS: localhost:1010", contents)
+        modified = re.sub("LOCAL_OSMOSIS:.*", "LOCAL_OSMOSIS: 127.0.0.1:1010", contents)
+        # todo: change 127.0.0.1 -> localhost
         with open(os.path.join(config.BUILD_CHROOT, "tmp", "solvent.conf"), "w") as f:
             f.write(modified)
         run.run([
@@ -102,7 +103,10 @@ class CleanBuild:
         try:
             return mani.buildRootFSLabel()
         except KeyError:
-            buildRootFSGitBasename = mani.buildRootFSRepositoryBasename()
+            try:
+                buildRootFSGitBasename = mani.buildRootFSRepositoryBasename()
+            except KeyError:
+                return config.NO_DIRBALAK_MANIFEST_BUILD_ROOTFS
             label = self._mirror.run([
                 'solvent', 'printlabel', '--product', 'rootfs',
                 '--repositoryBasename', buildRootFSGitBasename], hash=self._hash)

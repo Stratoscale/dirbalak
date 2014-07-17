@@ -1,5 +1,6 @@
 from upseto import gitwrapper
-from dirbalak.server import solventofficiallabels
+from dirbalak.rackrun import solventofficiallabels
+from dirbalak.rackrun import buildstate
 from dirbalak import repomirrorcache
 from dirbalak.server import tojs
 
@@ -13,9 +14,27 @@ class Queue:
     def __init__(self, officialObjectStore, multiverse):
         self._officialObjectStore = officialObjectStore
         self._multiverse = multiverse
+        self._buildState = buildstate.BuildState()
         self._queue = dict()
         self._reversedMap = dict()
         self._cantBeBuilt = dict()
+
+    def next(self):
+        for key in sorted(self._queue.keys()):
+            for job in self._queue[key]:
+                if not self._buildState.get(job['gitURL'], job['hexHash'])['inProgress']:
+                    self._buildState.inProgress(job['gitURL'], job['hexHash'])
+                    return job
+
+    def done(self, job, success):
+        self._buildState.done(job['gitURL'], job['hexHash'], success)
+        self.recalculate()
+
+    def queue(self):
+        return self._queue
+
+    def cantBeBuilt(self):
+        return self._cantBeBuilt
 
     def recalculate(self):
         labels = solventofficiallabels.SolventOfficialLabels(self._officialObjectStore)
@@ -23,7 +42,11 @@ class Queue:
         self._cantBeBuilt = dict()
         for dep in self._multiverse.getTraverse().dependencies():
             basename = gitwrapper.originURLBasename(dep.gitURL)
-            projectDict = dict(basename=basename, hash=dep.hash)
+            hexHash = dep.hash if dep.hash != 'origin/master' else dep.masterHash
+            projectDict = dict(
+                basename=basename, hash=dep.hash, gitURL=dep.gitURL, submit=True, hexHash=hexHash)
+            buildState = self._buildState.get(dep.gitURL, hexHash)
+            projectDict.update(buildState)
             unbuiltRequirements = self._unbuiltRequirements(dep.gitURL, dep.hash, labels)
             if unbuiltRequirements:
                 self._cantBeBuilt[(basename, dep.hash)] = unbuiltRequirements
@@ -31,7 +54,11 @@ class Queue:
             if dep.hash == "origin/master":
                 mirror = repomirrorcache.get(dep.gitURL)
                 if labels.built(basename, mirror.hash('origin/master')):
-                    self._put(projectDict, self.MASTERS_REBUILD)
+                    if buildState['failures'] > 0 and buildState['successes'] == 0:
+                        self._put(projectDict, self.MASTERS_WHICH_BUILD_ONLY_FAILED)
+                    else:
+                        projectDict['submit'] = False
+                        self._put(projectDict, self.MASTERS_REBUILD)
                 else:
                     self._put(projectDict, self.MASTERS_NOT_BUILT)
             else:
@@ -39,6 +66,9 @@ class Queue:
                     projectDict['requiringBasename'] = gitwrapper.originURLBasename(dep.requiringURL)
                     self._put(projectDict, self.NON_MASTER_DEPENDENCIES)
         self._reverseMap()
+        self._toJS()
+
+    def _toJS(self):
         tojs.set('queue/queue', self._queue)
         tojs.set('queue/cantBeBuilt', [
             dict(basename=basename, hash=hash, unbuiltRequirements=unbuiltRequirements)

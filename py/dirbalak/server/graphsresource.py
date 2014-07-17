@@ -3,6 +3,7 @@ from dirbalak import traversefilter
 from dirbalak import dependencygraph
 from dirbalak.server import multiversegraphnodeattributes
 from dirbalak.server import tojs
+import logging
 
 
 class GraphsResource(resource.Resource):
@@ -14,6 +15,7 @@ class GraphsResource(resource.Resource):
     def update(self):
         self._allProjects.clearCache()
         tojs.increment("graph/generation")
+        logging.info("Graph must refresh")
 
 
 class _AllProjects(resource.Resource):

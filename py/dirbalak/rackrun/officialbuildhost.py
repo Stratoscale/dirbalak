@@ -1,21 +1,31 @@
 from rackattack.ssh import connection
 from rackattack import api
+from dirbalak import config
 import re
 import logging
 
 
 class OfficialBuildHost:
+    _TIMEOUT = 8 * 60
+
     def __init__(self, client, nice=0):
-        requirement = api.Requirement(
-            imageLabel="solvent__rootfs-build__rootfs__b28426f0192d2d2a82f697672468320c9392a911__clean",
-            imageHint="build")
+        requirement = api.Requirement(imageLabel=config.OFFICIAL_BUILD_ROOTFS, imageHint="build")
         allocationInfo = api.AllocationInfo(user="dirbalak", purpose="officialbuild", nice=nice)
         self._allocation = client.allocate(
             requirements=dict(node=requirement), allocationInfo=allocationInfo)
 
+    def setForceReleaseCallback(self, callback):
+        self._allocation.setForceReleaseCallback(callback)
+
+    def close(self):
+        if hasattr(self, '_ssh'):
+            self._ssh.close()
+        if not self._allocation.dead():
+            self._allocation.free()
+
     def setUp(self, netRCFile):
         logging.info("Waiting for allocation to complete")
-        self._allocation.wait()
+        self._allocation.wait(timeout=self._TIMEOUT)
         logging.info("Done waiting for allocation to complete")
         self._node = self._allocation.nodes()['node']
         self._ssh = connection.Connection(** self._node.rootSSHCredentials())
@@ -35,19 +45,20 @@ class OfficialBuildHost:
         self._ssh.run.script(
             "PYTHONPATH=/root/dirbalakbuild.egg SOLVENT_CONFIG='OFFICIAL_BUILD: Yes' "
             "python -m dirbalak.main cleanbuild --gitURL '%s' --hash '%s' %s" % (
-                gitURL, hash, "" if submit else "--nosubmit" ))
+                gitURL, hash, "" if submit else "--nosubmit"))
 
     def _configureSolvent(self):
         with open("/etc/solvent.conf") as f:
             solventConf = f.read()
         modified = re.sub("LOCAL_OSMOSIS:.*", "LOCAL_OSMOSIS: 127.0.0.1:1010", solventConf)
+        # todo: change 127.0.0.1 -> localhost
         self._ssh.ftp.putContents("/etc/solvent.conf", modified)
 
 
 if __name__ == "__main__":
     import sys
     from rackattack import clientfactory
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     client = clientfactory.factory()
     host = OfficialBuildHost(client)
     try:
