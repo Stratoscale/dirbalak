@@ -101,6 +101,9 @@ class Graph:
         for dest, attributes in self._arcs.get(node, dict()).iteritems():
             if 'label' in attributes:
                 result.append(('VV ' + attributes['label'].replace("\\n", "  "), depth + 1))
+            if depth > 7:
+                result.append(('RECURSION TOO DEEP', depth + 1))
+                continue
             result += self._treeIterate(dest, depth + 1)
         return result
 

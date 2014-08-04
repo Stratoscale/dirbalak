@@ -31,7 +31,7 @@ class RepoMirror:
         with self._lock.lock(timeout=self._LOCK_TIMEOUT):
             if os.path.isdir(self._cloneDirectory):
                 self._git = gitwrapper.GitWrapper.existing(self._gitURL, self._cloneDirectory)
-#                self._git.fetch()
+                self._git.fetch()
             else:
                 os.makedirs(self._cloneDirectory)
                 self._git = gitwrapper.GitWrapper.clone(self._gitURL, self._cloneDirectory)

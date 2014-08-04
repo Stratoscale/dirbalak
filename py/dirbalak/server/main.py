@@ -11,6 +11,7 @@ from dirbalak.rackrun import queue
 from dirbalak.server import scriptologresource
 from dirbalak.rackrun import pool
 from dirbalak.rackrun import config
+from twisted.web import static
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -44,6 +45,7 @@ render.DEFAULTS['title'] = "Dirbalak"
 render.DEFAULTS['brand'] = "Dirbalak"
 render.DEFAULTS['mainMenu'] = [dict(title="Projects", href="/projects"), dict(title="Queue", href="/queue")]
 root = rootresource.rootResource()
+root.putChild("js", static.File("js"))
 root.putChild("projects", rootresource.Renderer("projects.html", dict(activeMenuItem="Projects")))
 root.putChild("project", resources.Projects())
 root.putChild("scriptolog", scriptologresource.ScriptologResource(multiverseInstance))

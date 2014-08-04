@@ -48,12 +48,11 @@
 
     <script type="text/javascript" src="/externals/knockout-3.1.0.js"></script>
     <script type="text/javascript" src="/realtimewebui/realtimewebui.js"></script>
+    <script type="text/javascript" src="/js/extendmodelwithgraph.js"></script>
     <script>
         function Model() {
             var self = this;
             self.projects = ko.observableArray([]);
-            self.dirbalakBuildRootFSArcs = ko.observable(false);
-            self.solventRootFSArcs = ko.observable(true);
 
             self.setProjects = function(ob) {
                 self.projects.removeAll();
@@ -65,36 +64,17 @@
                 });
             };
 
-            self._imageSource = function() {
-                return "/graphs/allProjects/image?dirbalakBuildRootFSArcs=" + (self.dirbalakBuildRootFSArcs()?"yes":"") +
-                        "&solventRootFSArcs=" + (self.solventRootFSArcs()?"yes":"");
-            };
-            self._updateMap = function() {
-                url = "/graphs/allProjects/map?dirbalakBuildRootFSArcs=" + (self.dirbalakBuildRootFSArcs()?"yes":"") +
-                        "&solventRootFSArcs=" + (self.solventRootFSArcs()?"yes":"");
-                $.ajax({url: url}).done(function(data) {
-                    $("#mainmap").html(data);
-                });
-            };
-            self.updateGraph = function() {
-                $("#graph").html('<img src="' + self._imageSource() + '" usemap="#mainmap"/>' + 
-                                '<map id="mainmap" name="mainmap"></map>');
-                self._updateMap();
-            }
-            self.dirbalakBuildRootFSArcs.subscribe(self.updateGraph);
-            self.solventRootFSArcs.subscribe(self.updateGraph);
-            self.updateGraph();
-
             self.requestFetch = function() {
-                areYouSureModal("Request Fetch", "Fetching all project is VERY expensive. Are you sure you require it now?", "Fetch",
+                areYouSureModal("Request Fetch", "Fetching all projects is VERY expensive. Are you sure you require it now?", "Fetch",
                         function(){ ui.command('userRequestsFetchAll', {}); });
             };
         }
         var model = new Model();
+        extendModelWithGraph(model, "/graphs/allProjects");
         ko.applyBindings(model);
         var ui = new RealTimeWebUI();
         ui.register("projectsList", model.setProjects);
-        ui.register("graph/generatio", model.updateGraph);
+        ui.register("graph/generation", model.updateGraph);
     </script>
 
 {% endblock %}

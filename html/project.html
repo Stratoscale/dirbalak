@@ -77,8 +77,21 @@
         </div>
     </div>
 
+    <div style="text-align: center">
+        <p>
+            <div id="graph">
+            </div>
+            <p>
+                <input type="checkbox" data-bind="checked: dirbalakBuildRootFSArcs">Dirbalak Build RootFS Arcs
+                &nbsp;
+                <input type="checkbox" data-bind="checked: solventRootFSArcs">Solvent RootFS Arcs
+            </p>
+        </p>
+    </div>
+
     <script type="text/javascript" src="/externals/knockout-3.1.0.js"></script>
     <script type="text/javascript" src="/realtimewebui/realtimewebui.js"></script>
+    <script type="text/javascript" src="/js/extendmodelwithgraph.js"></script>
     <script>
         function secondsToDescription(seconds) {
             if (seconds / 60 / 60 / 24 >= 1)
@@ -136,6 +149,7 @@ z = ob;
             };
         }
         var model = new Model("{{project}}");
+        extendModelWithGraph(model, "/graphs/project/{{project}}");
         ko.applyBindings(model);
         var ui = new RealTimeWebUI();
         ui.register("project/{{project}}", model.setData);
