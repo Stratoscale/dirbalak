@@ -38,7 +38,7 @@ class HostThread(threading.Thread):
             return
         logging.info("Received job, building: '%(job)s'", dict(job=job))
         try:
-            self._host.build(job['gitURL'], job['hexHash'], job['submit'])
+            self._host.build(job['gitURL'], job['hexHash'], job['submit'], job['buildRootFS'])
         except:
             logging.exception("Job failed: '%(job)s'", dict(job=job))
             with self._queueLock:

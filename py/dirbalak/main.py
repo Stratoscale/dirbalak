@@ -51,6 +51,9 @@ whatGroup.add_argument("--gitURL")
 whatGroup.add_argument("--currentProject", action='store_true')
 cleanbuildCmd.add_argument("--hash", default="origin/master")
 cleanbuildCmd.add_argument("--nosubmit", action="store_true")
+cleanbuildCmd.add_argument(
+    "--rootfs", help="label to build in. a dirbalak manifest should not exist "
+    "to use this option")
 setCmd = subparsers.add_parser(
     "set",
     help="set dirbalak parameters")
@@ -109,7 +112,8 @@ if args.cmd == "discover":
         graph.saveDot(args.dotOutput)
 elif args.cmd == "cleanbuild":
     gitURL = gitwrapper.GitWrapper(".").originURL() if args.currentProject else args.gitURL
-    cleanbuild.CleanBuild(gitURL=gitURL, hash=args.hash, submit=not args.nosubmit).go()
+    cleanbuild.CleanBuild(
+        gitURL=gitURL, hash=args.hash, submit=not args.nosubmit, buildRootFS=args.rootfs).go()
 elif args.cmd == "set":
     setoperation.SetOperation(key=args.key, value=args.value).go()
 elif args.cmd == "unreferencedLabels":

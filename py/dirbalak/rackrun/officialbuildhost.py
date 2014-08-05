@@ -41,11 +41,13 @@ class OfficialBuildHost:
         self._ssh.run.script("sed 's/.*requiretty.*//' -i /etc/sudoers")
         logging.info("Setup of official build host completed successfully")
 
-    def build(self, gitURL, hash, submit):
+    def build(self, gitURL, hash, submit, buildRootFS):
         self._ssh.run.script(
             "PYTHONPATH=/root/dirbalakbuild.egg SOLVENT_CONFIG='OFFICIAL_BUILD: Yes' "
-            "python -m dirbalak.main cleanbuild --gitURL '%s' --hash '%s' %s" % (
-                gitURL, hash, "" if submit else "--nosubmit"))
+            "python -m dirbalak.main cleanbuild --gitURL '%s' --hash '%s' %s %s" % (
+                gitURL, hash,
+                "" if submit else "--nosubmit",
+                "--rootfs=%s" % buildRootFS if buildRootFS is not None else ""))
 
     def _configureSolvent(self):
         with open("/etc/solvent.conf") as f:

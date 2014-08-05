@@ -1,14 +1,16 @@
 from dirbalak import repomirrorcache
 from upseto import gitwrapper
 from dirbalak.server import tojs
+from dirbalak import config
 
 
 class Project:
-    def __init__(self, gitURL, owner, group, fetchThread):
+    def __init__(self, gitURL, owner, group, fetchThread, defaultRootFS=False):
         self._gitURL = gitURL
         self._owner = owner
         self._group = group
         self._fetchThread = fetchThread
+        self._defaultRootFS = defaultRootFS
         self._basename = gitwrapper.originURLBasename(gitURL)
         self._mirror = repomirrorcache.get(gitURL)
         self._traverse = None
@@ -21,6 +23,9 @@ class Project:
 
     def basename(self):
         return self._basename
+
+    def buildRootFS(self):
+        return config.NO_DIRBALAK_MANIFEST_BUILD_ROOTFS if self._defaultRootFS else None
 
     def needsFetch(self, reason):
         tojs.appendEvent("project/" + self._basename, "Needs Fetch due to %s" % reason)

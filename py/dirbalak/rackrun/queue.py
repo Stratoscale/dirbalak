@@ -42,9 +42,11 @@ class Queue:
         self._cantBeBuilt = dict()
         for dep in self._multiverse.getTraverse().dependencies():
             basename = gitwrapper.originURLBasename(dep.gitURL)
+            project = self._multiverse.projects[basename]
             hexHash = dep.hash if dep.hash != 'origin/master' else dep.masterHash
             projectDict = dict(
-                basename=basename, hash=dep.hash, gitURL=dep.gitURL, submit=True, hexHash=hexHash)
+                basename=basename, hash=dep.hash, gitURL=dep.gitURL, submit=True,
+                hexHash=hexHash, buildRootFS=project.buildRootFS())
             buildState = self._buildState.get(dep.gitURL, hexHash)
             projectDict.update(buildState)
             unbuiltRequirements = self._unbuiltRequirements(dep.gitURL, dep.hash, labels)

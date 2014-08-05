@@ -11,10 +11,11 @@ import subprocess
 class CleanBuild:
     _MOUNT_BIND = ["proc", "dev", "sys"]
 
-    def __init__(self, gitURL, hash, submit):
+    def __init__(self, gitURL, hash, submit, buildRootFS):
         self._gitURL = gitURL
         self._hash = hash
         self._submit = submit
+        self._buildRootFS = buildRootFS
         self._mirror = repomirrorcache.get(self._gitURL)
 
     def go(self):
@@ -101,12 +102,19 @@ class CleanBuild:
     def _findBuildRootFSLabel(self):
         mani = self._mirror.dirbalakManifest(self._hash)
         try:
-            return mani.buildRootFSLabel()
+            label = mani.buildRootFSLabel()
+            assert self._buildRootFS is None, \
+                "Manifest contains build rootfs, but project marked as one without"
+            return label
         except KeyError:
             try:
                 buildRootFSGitBasename = mani.buildRootFSRepositoryBasename()
+                assert self._buildRootFS is None, \
+                    "Manifest contains build rootfs, but project marked as one without"
             except KeyError:
-                return config.NO_DIRBALAK_MANIFEST_BUILD_ROOTFS
+                if self._buildRootFS:
+                    return self._buildRootFS
+                raise Exception("No dirbalak.manifest file with rootfs pointer - please create one")
             label = self._mirror.run([
                 'solvent', 'printlabel', '--product', 'rootfs',
                 '--repositoryBasename', buildRootFSGitBasename], hash=self._hash)
