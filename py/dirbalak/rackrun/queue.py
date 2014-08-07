@@ -3,6 +3,7 @@ from dirbalak.rackrun import solventofficiallabels
 from dirbalak.rackrun import buildstate
 from dirbalak import repomirrorcache
 from dirbalak.server import tojs
+import collections
 
 
 class Queue:
@@ -18,12 +19,16 @@ class Queue:
         self._queue = dict()
         self._reversedMap = dict()
         self._cantBeBuilt = dict()
+        self._rebuildRotate = 0
 
     def next(self):
         for key in sorted(self._queue.keys()):
             for job in self._queue[key]:
                 if not self._buildState.get(job['gitURL'], job['hexHash'])['inProgress']:
                     self._buildState.inProgress(job['gitURL'], job['hexHash'])
+                    if key == self.MASTERS_REBUILD:
+                        self._rotateMastersRebuild(self._queue)
+                        self._toJS()
                     return job
 
     def done(self, job, success):
@@ -92,7 +97,19 @@ class Queue:
         queue = dict()
         for priority, project in self._reversedMap.values():
             queue.setdefault(priority, []).append(project)
+        if self.MASTERS_REBUILD in queue:
+            deque = collections.deque(queue[self.MASTERS_REBUILD])
+            deque.rotate(self._rebuildRotate)
+            queue[self.MASTERS_REBUILD] = list(deque)
         self._queue = queue
+
+    def _rotateMastersRebuild(self, queue):
+        if self.MASTERS_REBUILD not in queue:
+            return
+        self._rebuildRotate -= 1
+        deque = collections.deque(queue[self.MASTERS_REBUILD])
+        deque.rotate(-1)
+        queue[self.MASTERS_REBUILD] = list(deque)
 
     def _put(self, project, priority):
         key = (project['basename'], project['hash'])

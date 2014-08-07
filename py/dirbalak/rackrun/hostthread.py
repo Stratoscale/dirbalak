@@ -33,8 +33,10 @@ class HostThread(threading.Thread):
 
     def _jobToJS(self, job):
         tojs.set("buildHost/%s" % self._host.ipAddress(), dict(ipAddress=self._host.ipAddress(), job=job))
-        tojs.appendEvent("buildHost/%s" % self._host.ipAddress(),
-            "Became Idle" if job is None else "Started %s/%s" % (job['gitURL'], job['hexHash']))
+        self._event("Became Idle" if job is None else "Started %s/%s" % (job['gitURL'], job['hexHash']))
+
+    def _event(self, text):
+        tojs.appendEvent("buildHost/%s" % self._host.ipAddress(), text)
 
     def _allocationForcelyReleased(self):
         self._host.close()
@@ -53,10 +55,12 @@ class HostThread(threading.Thread):
             logging.exception("Job failed: '%(job)s'", dict(job=job))
             with self._queueLock:
                 self._queue.done(job, False)
+            self._event("Job failed")
             raise
         else:
             logging.info("Job succeeded: '%(job)s'", dict(job=job))
             with self._queueLock:
                 self._queue.done(job, True)
+            self._event("Job succeeded")
         finally:
             self._jobToJS(None)

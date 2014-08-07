@@ -12,7 +12,7 @@
                         Currently: 
                         <span data-bind="if: ! host.job()">Idle</span>
                         <span data-bind="if: host.job()">
-                            <span data-bind="text: host.job().gitURL"></span>
+                            <span data-bind="text: host.job().gitURL" style="font-weight: bold"></span>
                             /
                             <span data-bind="text: host.job().hexHash"></span>
                         </span>
