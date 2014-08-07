@@ -7,12 +7,24 @@
         <ul data-bind="foreach: { data: hosts, as: 'host' }">
             <li>
                 <span data-bind="text: host.ipAddress"></span>: 
-                <span data-bind="if: ! host.job()">Idle</span>
-                <span data-bind="if: host.job()">
-                    <span data-bind="text: host.job().gitURL"></span>
-                    /
-                    <span data-bind="text: host.job().hexHash"></span>
-                </span>
+                <ul>
+                    <li>
+                        Currently: 
+                        <span data-bind="if: ! host.job()">Idle</span>
+                        <span data-bind="if: host.job()">
+                            <span data-bind="text: host.job().gitURL"></span>
+                            /
+                            <span data-bind="text: host.job().hexHash"></span>
+                        </span>
+                    </li>
+                    <!-- ko foreach: events -->
+                        <li>
+                            <span data-bind="text: time.toLocaleString()"></span>
+                            -
+                            <span data-bind="text: text"></span>
+                        </li>
+                    <!-- /ko -->
+                </ul>
             </li>
         </ul>
         <div data-bind="if: hosts().length == 0">
@@ -29,14 +41,25 @@
             self.ui = ui;
             self.ipAddress = ipAddress;
             self.job = ko.observable(null);
+            self.events = ko.observableArray([]);
 
             self.setJob = function(ob) {
                 self.job(ob.job);
             };
 
+            self.setEvents = function(ob) {
+                if (ob == null)
+                    return;
+                self.events.removeAll();
+                for ( var i = ob.length - 1; i >= 0; i -= 1 )
+                    self.events.push({time: new Date(ob[i].time * 1000), text: ob[i].text});
+            };
+
             ui.register("buildHost/" + ipAddress, self.setJob);
+            ui.register("events/buildHost/" + ipAddress, self.setEvents);
             self.unregister = function() {
                 ui.unregister("buildHost/" + ipAddress, self.setJob);
+                ui.unregister("events/buildHost/" + ipAddress, self.setEvents);
             };
         }
         function Model() {

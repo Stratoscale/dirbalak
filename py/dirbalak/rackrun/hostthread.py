@@ -33,6 +33,8 @@ class HostThread(threading.Thread):
 
     def _jobToJS(self, job):
         tojs.set("buildHost/%s" % self._host.ipAddress(), dict(ipAddress=self._host.ipAddress(), job=job))
+        tojs.appendEvent("buildHost/%s" % self._host.ipAddress(),
+            "Became Idle" if job is None else "Started %s/%s" % (job['gitURL'], job['hexHash']))
 
     def _allocationForcelyReleased(self):
         self._host.close()
