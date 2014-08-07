@@ -41,6 +41,9 @@ class OfficialBuildHost:
         self._ssh.run.script("sed 's/.*requiretty.*//' -i /etc/sudoers")
         logging.info("Setup of official build host completed successfully")
 
+    def ipAddress(self):
+        return self._node.ipAddress()
+
     def build(self, gitURL, hash, submit, buildRootFS):
         self._ssh.run.script(
             "PYTHONPATH=/root/dirbalakbuild.egg SOLVENT_CONFIG='OFFICIAL_BUILD: Yes' "

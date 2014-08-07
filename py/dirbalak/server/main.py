@@ -43,16 +43,20 @@ pool.Pool(queueInstance)
 render.addTemplateDir("html")
 render.DEFAULTS['title'] = "Dirbalak"
 render.DEFAULTS['brand'] = "Dirbalak"
-render.DEFAULTS['mainMenu'] = [dict(title="Projects", href="/projects"), dict(title="Queue", href="/queue")]
+render.DEFAULTS['mainMenu'] = [
+    dict(title="Projects", href="/projects"),
+    dict(title="Queue", href="/queue"),
+    dict(title="Build Hosts", href="/buildHosts")]
 root = rootresource.rootResource()
 root.putChild("js", static.File("js"))
 root.putChild("projects", rootresource.Renderer("projects.html", dict(activeMenuItem="Projects")))
+root.putChild("queue", rootresource.Renderer("queue.html", dict(activeMenuItem="Queue")))
+root.putChild("buildHosts", rootresource.Renderer("buildHosts.html", dict(activeMenuItem="Build Hosts")))
 root.putChild("project", resources.Projects())
 root.putChild("scriptolog", scriptologresource.ScriptologResource(multiverseInstance))
 graphResource = graphsresource.GraphsResource(multiverseInstance)
 root.putChild("graphs", graphResource)
 fetchThread.addPostTraverseCallback(graphResource.update)
-root.putChild("queue", rootresource.Renderer("queue.html", dict(activeMenuItem="Queue")))
 if args.unsecured:
     server.runUnsecured(root, args.webPort, args.webSocketPort)
 else:
