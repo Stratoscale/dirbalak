@@ -6,6 +6,7 @@ from upseto import gitwrapper
 from dirbalak import config
 import re
 import subprocess
+import multiprocessing
 
 
 class CleanBuild:
@@ -24,25 +25,25 @@ class CleanBuild:
         buildRootFSLabel = self._findBuildRootFSLabel()
         self._unmountBinds()
         self._checkOutBuildRootFS(buildRootFSLabel)
-        git = self._cloneSources()
-        self._checkOutDependencies(git)
+        self._git = self._cloneSources()
+        self._gitInChroot = self._git.directory()[len(config.BUILD_CHROOT):]
+        self._checkOutDependencies()
         self._mountBinds()
         try:
-            self._upsetoCheckRequirements(git)
-            self._make(git)
+            self._upsetoCheckRequirements()
+            self._make()
             if self._submit:
                 logging.info("Submitting")
-                run.run(["sudo", "-E", "solvent", "submitbuild"], cwd=git.directory())
+                run.run(["sudo", "-E", "solvent", "submitbuild"], cwd=self._git.directory())
                 run.run([
                     "make", "-f", self._makefileForTargetThatMayNotExist("submit"), "submit"],
-                    cwd=git.directory())
-            self._whiteboxTest(git)
-            self._rackTest(git)
+                    cwd=self._git.directory())
+            self._rackTest()
             if self._submit:
-                run.run(["sudo", "-E", "solvent", "approve"], cwd=git.directory())
+                run.run(["sudo", "-E", "solvent", "approve"], cwd=self._git.directory())
                 run.run([
                     "make", "-f", self._makefileForTargetThatMayNotExist("approve"), "approve"],
-                    cwd=git.directory())
+                    cwd=self._git.directory())
         finally:
             self._unmountBinds()
 
@@ -68,8 +69,8 @@ class CleanBuild:
             "sudo", "mv", os.path.join(config.BUILD_CHROOT, "tmp", "solvent.conf"),
             os.path.join(config.BUILD_CHROOT, "etc", "solvent.conf")])
 
-    def _checkOutDependencies(self, git):
-        run.run(["sudo", "solvent", "fulfillrequirements"], cwd=git.directory())
+    def _checkOutDependencies(self):
+        run.run(["sudo", "solvent", "fulfillrequirements"], cwd=self._git.directory())
 
     def _cloneSources(self):
         logging.info("Cloning git repo inside chroot")
@@ -78,25 +79,20 @@ class CleanBuild:
         git.checkout(self._hash)
         return git
 
-    def _upsetoCheckRequirements(self, git):
-        relative = git.directory()[len(config.BUILD_CHROOT):]
-        if os.path.exists(os.path.join(git.directory(), "upseto.manifest")):
-            logging.info("Verifying upseto requirements")
-            run.run([
-                "sudo", "chroot", config.BUILD_CHROOT, "sh", "-c",
-                "cd %s; upseto checkRequirements --show" % relative])
+    def _upsetoCheckRequirements(self):
+        if not os.path.exists(os.path.join(self._git.directory(), "upseto.manifest")):
+            logging.info("No upseto.manifest file, skipping verification of upseto requirements")
+            return
+        logging.info("Verifying upseto requirements")
+        run.run(["upseto", "checkRequirements", "--show"], cwd=self._git.directory())
 
-    def _make(self, git, arguments=""):
-        relative = git.directory()[len(config.BUILD_CHROOT):]
+    def _make(self, arguments=""):
         logging.info("Running make %(arguments)s", dict(arguments=arguments))
         run.run([
             "sudo", "chroot", config.BUILD_CHROOT, "sh", "-c",
-            "cd %s; make %s" % (relative, arguments)])
+            "cd %s; make -j %d %s" % (self._gitInChroot, multiprocessing.cpu_count(), arguments)])
 
-    def _whiteboxTest(self, git):
-        pass
-
-    def _rackTest(self, git):
+    def _rackTest(self):
         pass
 
     def _findBuildRootFSLabel(self):
