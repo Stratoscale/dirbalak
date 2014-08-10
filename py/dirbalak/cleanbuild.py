@@ -11,6 +11,7 @@ import multiprocessing
 
 class CleanBuild:
     _MOUNT_BIND = ["proc", "dev", "sys"]
+    _TEMP_MAKEFILE = "/tmp/Makefile"
 
     def __init__(self, gitURL, hash, submit, buildRootFS):
         self._gitURL = gitURL
@@ -31,6 +32,7 @@ class CleanBuild:
         self._mountBinds()
         try:
             self._upsetoCheckRequirements()
+            self._makeForATargetThatMayNotExist("prepareForCleanBuild")
             self._make()
             if self._submit:
                 logging.info("Submitting")
@@ -92,6 +94,10 @@ class CleanBuild:
             "sudo", "chroot", config.BUILD_CHROOT, "sh", "-c",
             "cd %s; make -j %d %s" % (self._gitInChroot, multiprocessing.cpu_count(), arguments)])
 
+    def _makeForATargetThatMayNotExist(self, target, arguments=""):
+        self._makefileForTargetThatMayNotExist(target)
+        self._make(("-f %s %s " % (self._TEMP_MAKEFILE, target)) + arguments)
+
     def _rackTest(self):
         pass
 
@@ -117,7 +123,7 @@ class CleanBuild:
             return label.strip()
 
     def _makefileForTargetThatMayNotExist(self, target):
-        tempMakefile = os.path.join(config.BUILD_CHROOT, "tmp", "Makefile")
+        tempMakefile = os.path.join(config.BUILD_CHROOT, self._TEMP_MAKEFILE.strip("/"))
         with open(tempMakefile, "w") as f:
             f.write("include Makefile\n%s:\n" % target)
         return tempMakefile
