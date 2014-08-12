@@ -38,6 +38,10 @@ class HostThread(threading.Thread):
     def _event(self, text):
         tojs.appendEvent("buildHost/%s" % self._host.ipAddress(), text)
 
+    def _projectEvent(self, job, format):
+        tojs.appendEvent("project/" + job['basename'], format % dict(
+            job, ipAddress=self._host.ipAddress()))
+
     def _allocationForcelyReleased(self):
         self._host.close()
 
@@ -49,6 +53,7 @@ class HostThread(threading.Thread):
             return
         logging.info("Received job, building: '%(job)s'", dict(job=job))
         self._jobToJS(job)
+        self._projectEvent(job, "Host '%(ipAddress)s' starts to build hash '%(hexHash)s'")
         try:
             self._host.build(job['gitURL'], job['hexHash'], job['submit'], job['buildRootFS'])
         except:
@@ -56,11 +61,13 @@ class HostThread(threading.Thread):
             with self._queueLock:
                 self._queue.done(job, False)
             self._event("Job failed")
+            self._projectEvent(job, "Host '%(ipAddress)s' failed building hash '%(hexHash)s'")
             raise
         else:
             logging.info("Job succeeded: '%(job)s'", dict(job=job))
             with self._queueLock:
                 self._queue.done(job, True)
+            self._projectEvent(job, "Host '%(ipAddress)s' successfully built hash '%(hexHash)s'")
             self._event("Job succeeded")
         finally:
             self._jobToJS(None)
