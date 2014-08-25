@@ -19,9 +19,7 @@
                     </li>
                     <!-- ko foreach: events -->
                         <li>
-                            <span data-bind="text: time.toLocaleString()"></span>
-                            -
-                            <span data-bind="text: text"></span>
+                            <span data-bind="html: EventToHTML.render($data)"></span>
                         </li>
                     <!-- /ko -->
                 </ul>
@@ -35,6 +33,7 @@
     <script type="text/javascript" src="/externals/knockout-3.1.0.js"></script>
     <script type="text/javascript" src="/externals/underscore-min.js"></script>
     <script type="text/javascript" src="/realtimewebui/realtimewebui.js"></script>
+    <script type="text/javascript" src="/js/eventtohtml.js"></script>
     <script>
         function BuildHost(ui, ipAddress) {
             var self = this;
@@ -52,7 +51,7 @@
                     return;
                 self.events.removeAll();
                 for ( var i = ob.length - 1; i >= 0; i -= 1 )
-                    self.events.push({time: new Date(ob[i].time * 1000), text: ob[i].text});
+                    self.events.push(ob[i]);
             };
 
             ui.register("buildHost/" + ipAddress, self.setJob);

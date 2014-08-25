@@ -1,5 +1,5 @@
 requirements:
-- hash: d7b2d5c652bc7bc2f2da39ecc26cec2a773fb3fd
+- hash: 73d7955757da50f84378cc2c9efd42498cbc52f1
   originURL: https://github.com/shlomimatichin/realtimewebui.git
 - hash: 98e775ae0c794a435d82827503b01b99e27513cc
   originURL: https://github.com/Stratoscale/rackattack-api.git

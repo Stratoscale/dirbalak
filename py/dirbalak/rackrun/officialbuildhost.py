@@ -1,8 +1,11 @@
 from rackattack.ssh import connection
 from rackattack import api
 from dirbalak import config
+import os
 import re
 import logging
+import subprocess
+from upseto import gitwrapper
 
 
 class OfficialBuildHost:
@@ -44,13 +47,20 @@ class OfficialBuildHost:
     def ipAddress(self):
         return self._node.ipAddress()
 
-    def build(self, gitURL, hash, submit, buildRootFS):
+    def build(self, gitURL, hash, submit, buildRootFS, logbeamBuildID):
+        self._configureLogbeam(gitURL, logbeamBuildID)
+        cleanBuildLine = "python -m dirbalak.main cleanbuild --gitURL '%s' --hash '%s' %s %s" % (
+            gitURL, hash, "" if submit else "--nosubmit",
+            "--rootfs=%s" % buildRootFS if buildRootFS is not None else "")
         self._ssh.run.script(
-            "PYTHONPATH=/root/dirbalakbuild.egg SOLVENT_CONFIG='OFFICIAL_BUILD: Yes' "
-            "python -m dirbalak.main cleanbuild --gitURL '%s' --hash '%s' %s %s" % (
-                gitURL, hash,
-                "" if submit else "--nosubmit",
-                "--rootfs=%s" % buildRootFS if buildRootFS is not None else ""))
+            "export PYTHONPATH=/root/dirbalakbuild.egg\n"
+            "export SOLVENT_CONFIG='OFFICIAL_BUILD: Yes'\n"
+            "%s >& /tmp/dirbalak.cleanbuild.log\n"
+            "result=$?\n"
+            "cat /tmp/dirbalak.cleanbuild.log\n"
+            "echo RETURN_CODE $result >> /tmp/dirbalak.cleanbuild.log\n"
+            "logbeam upload /tmp/dirbalak.cleanbuild.log\n"
+            "exit $result\n" % cleanBuildLine)
 
     def _configureSolvent(self):
         with open("/etc/solvent.conf") as f:
@@ -58,6 +68,12 @@ class OfficialBuildHost:
         modified = re.sub("LOCAL_OSMOSIS:.*", "LOCAL_OSMOSIS: 127.0.0.1:1010", solventConf)
         # todo: change 127.0.0.1 -> localhost
         self._ssh.ftp.putContents("/etc/solvent.conf", modified)
+
+    def _configureLogbeam(self, gitURL, logbeamBuildID):
+        basename = gitwrapper.originURLBasename(gitURL)
+        under = os.path.join("dirbalak", basename, logbeamBuildID)
+        config = subprocess.check_output(["logbeam", "createConfig", "--under", under])
+        self._ssh.ftp.putContents("/etc/logbeam.config", config)
 
 
 if __name__ == "__main__":
@@ -73,7 +89,6 @@ if __name__ == "__main__":
         logging.exception("failed")
     finally:
         print host._node.rootSSHCredentials()
-        import os
         os.system(
             "sshpass -p %(password)s ssh -o ServerAliveInterval=5 -o ServerAliveCountMax=1 "
             "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p %(port)d "

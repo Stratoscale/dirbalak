@@ -28,7 +28,8 @@ class Project:
         return config.NO_DIRBALAK_MANIFEST_BUILD_ROOTFS if self._defaultRootFS else None
 
     def needsFetch(self, reason):
-        tojs.appendEvent("project/" + self._basename, "Needs Fetch due to %s" % reason)
+        tojs.appendEvent("project/" + self._basename, dict(
+            type='text', text="Needs Fetch due to %s" % reason))
         self._fetchThread.enqueue(self._mirror)
 
     def setTraverse(self, traverse):

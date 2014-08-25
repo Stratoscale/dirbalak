@@ -5,9 +5,9 @@ import time
 _MAXIMUM_EVENTS_BACKLOG = 50
 
 
-def appendEvent(eventListID, text):
+def appendEvent(eventListID, obj):
     tojs.appendAndCycle(
-        "events/%s" % eventListID, dict(time=time.time(), text=text), maximumSize=_MAXIMUM_EVENTS_BACKLOG)
+        "events/%s" % eventListID, dict(time=time.time(), obj=obj), maximumSize=_MAXIMUM_EVENTS_BACKLOG)
 
 
 def addToProjectsList(asDict):

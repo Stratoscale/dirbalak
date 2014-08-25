@@ -1,6 +1,7 @@
 import logging
 import threading
 import time
+import datetime
 from dirbalak.rackrun import config
 from dirbalak.server import tojs
 
@@ -22,25 +23,29 @@ class HostThread(threading.Thread):
             self._host.setUp(config.GITHUB_NETRC_FILE)
             logging.info("Done setting up host")
             tojs.addToBuildHostsList(self._host.ipAddress())
-            self._jobToJS(None)
-            while True:
-                self._buildOne()
+            try:
+                self._hostEventsKey = "buildHost/%s" + self._host.ipAddress()
+                self._jobToJS(None)
+                while True:
+                    self._buildOne()
+            finally:
+                tojs.removeFromBuildHostsList(self._host.ipAddress())
         except:
             logging.exception("rack run host thread dies")
         finally:
             self._removeCallback(self)
-            tojs.removeFromBuildHostsList(self._host.ipAddress())
 
     def _jobToJS(self, job):
         tojs.set("buildHost/%s" % self._host.ipAddress(), dict(ipAddress=self._host.ipAddress(), job=job))
-        self._event("Became Idle" if job is None else "Started %s/%s" % (job['gitURL'], job['hexHash']))
+        if job is None:
+            tojs.appendEvent(self._hostEventsKey, dict(type="text", text="Became idle"))
+        else:
+            tojs.appendEvent(self._hostEventsKey, dict(
+                type="job_started", host=self._host.ipAddress(), job=job))
 
-    def _event(self, text):
-        tojs.appendEvent("buildHost/%s" % self._host.ipAddress(), text)
-
-    def _projectEvent(self, job, format):
-        tojs.appendEvent("project/" + job['basename'], format % dict(
-            job, ipAddress=self._host.ipAddress()))
+    def _projectEvent(self, job, buildID, type):
+        tojs.appendEvent("project/" + job['basename'], dict(
+            type=type, job=job, buildID=buildID, host=self._host.ipAddress()))
 
     def _allocationForcelyReleased(self):
         self._host.close()
@@ -52,22 +57,25 @@ class HostThread(threading.Thread):
             time.sleep(15)
             return
         logging.info("Received job, building: '%(job)s'", dict(job=job))
+        buildID = "%s_%s" % (datetime.datetime.now().strftime('%Y%m%d_%H%M%S'), job['hexHash'])
         self._jobToJS(job)
-        self._projectEvent(job, "Host '%(ipAddress)s' starts to build hash '%(hexHash)s'")
+        self._projectEvent(job, buildID, "build_started")
         try:
-            self._host.build(job['gitURL'], job['hexHash'], job['submit'], job['buildRootFS'])
+            self._host.build(
+                gitURL=job['gitURL'], hash=job['hexHash'], submit=job['submit'],
+                buildRootFS=job['buildRootFS'], logbeamBuildID=buildID)
         except:
             logging.exception("Job failed: '%(job)s'", dict(job=job))
             with self._queueLock:
                 self._queue.done(job, False)
-            self._event("Job failed")
-            self._projectEvent(job, "Host '%(ipAddress)s' failed building hash '%(hexHash)s'")
+            tojs.appendEvent(self._hostEventsKey, dict(type="text", text="Job failed"))
+            self._projectEvent(job, buildID, "build_failed")
             raise
         else:
             logging.info("Job succeeded: '%(job)s'", dict(job=job))
             with self._queueLock:
                 self._queue.done(job, True)
-            self._projectEvent(job, "Host '%(ipAddress)s' successfully built hash '%(hexHash)s'")
-            self._event("Job succeeded")
+            self._projectEvent(job, buildID, "build_succeeded")
+            tojs.appendEvent(self._hostEventsKey, dict(type="text", text="Job succeeded"))
         finally:
             self._jobToJS(None)

@@ -13,13 +13,24 @@ from dirbalak.rackrun import pool
 from dirbalak.rackrun import config
 from twisted.web import static
 import logging
+import signal
+import sys
+import subprocess
+import atexit
+
+
+def _exit(*args):
+    sys.exit()
+
+signal.signal(signal.SIGTERM, _exit)
+signal.signal(signal.SIGINT, _exit)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--webPort", type=int, default=6001)
 parser.add_argument("--webSocketPort", type=int, default=6002)
-parser.add_argument("--reservePort", type=int, default=6003)
+parser.add_argument("--logbeamWebFrontendPort", type=int, default=6003)
 parser.add_argument("--githubListenerPort", type=int, default=6004)
 parser.add_argument("--username", default="stratotest")
 parser.add_argument("--password", default="2good2betruebettercallchucknorris")
@@ -30,6 +41,11 @@ parser.add_argument("--githubNetRCFile", required=True)
 args = parser.parse_args()
 
 config.GITHUB_NETRC_FILE = args.githubNetRCFile
+
+logbeamWebFrontend = subprocess.Popen([
+    "logbeam", 'webfrontend', "--port", str(args.logbeamWebFrontendPort),
+    "--basicAuthUser", args.username, "--basicAuthPassword", args.password])
+atexit.register(lambda *a: logbeamWebFrontend.terminate())
 
 fetchThread = fetchthread.FetchThread()
 multiverseInstance = multiverse.Multiverse.load(args.multiverseFile, fetchThread=fetchThread)
@@ -49,6 +65,7 @@ render.DEFAULTS['mainMenu'] = [
     dict(title="Build Hosts", href="/buildHosts")]
 root = rootresource.rootResource()
 root.putChild("js", static.File("js"))
+rootresource.GLOBAL_PARAMETERS['logbeamWebFrontendPort'] = args.logbeamWebFrontendPort
 root.putChild("projects", rootresource.Renderer("projects.html", dict(activeMenuItem="Projects")))
 root.putChild("queue", rootresource.Renderer("queue.html", dict(activeMenuItem="Queue")))
 root.putChild("buildHosts", rootresource.Renderer("buildHosts.html", dict(activeMenuItem="Build Hosts")))

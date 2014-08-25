@@ -64,9 +64,7 @@
             Last Events:
             <ul data-bind="foreach: events">
                 <li>
-                    <span data-bind="text: time.toLocaleString()"></span>
-                    -
-                    <span data-bind="text: text"></span>
+                    <span data-bind="html: EventToHTML.render($data)"></span>
                 </li>
             </ul>
         </div>
@@ -92,6 +90,7 @@
     <script type="text/javascript" src="/externals/knockout-3.1.0.js"></script>
     <script type="text/javascript" src="/realtimewebui/realtimewebui.js"></script>
     <script type="text/javascript" src="/js/extendmodelwithgraph.js"></script>
+    <script type="text/javascript" src="/js/eventtohtml.js"></script>
     <script>
         function secondsToDescription(seconds) {
             if (seconds / 60 / 60 / 24 >= 1)
@@ -140,7 +139,7 @@ z = ob;
             self.setEvents = function(ob) {
                 self.events.removeAll();
                 for ( var i = ob.length - 1; i >= 0; i -= 1 )
-                    self.events.push({time: new Date(ob[i].time * 1000), text: ob[i].text});
+                    self.events.push(ob[i]);
             };
 
             self.requestFetch = function() {
