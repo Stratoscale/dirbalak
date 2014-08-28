@@ -44,7 +44,7 @@ EventToHTML._renderObject = function(obj)
     if (obj.type == "text") {
         return safeHTMLOfText(obj.text);
     } else if (obj.type == 'job_started') {
-        return EventToHTML._hostAnchor(obj.host) + " Started Building " + EventToHTML._jobAnchor(obj.job);
+        return EventToHTML._hostAnchor(obj.host) + " Started Building " + EventToHTML._jobAnchor(obj.job) + " " + EventToHTML._buildAnchor(obj);
     } else if (obj.type == 'build_started') {
         return "Started " + EventToHTML._buildAnchor(obj) + " for " + EventToHTML._jobAnchor(obj.job);
     } else if (obj.type == 'build_failed') {

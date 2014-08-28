@@ -59,6 +59,7 @@ class CleanBuild:
                     cwd=self._git.directory())
         finally:
             self._unmountBinds()
+            self._beamLogsDir("buildHost_var_log", "/var/log")
 
     def _verifyDependenciesExist(self):
         self._mirror.run(["solvent", "checkrequirements"], hash=self._hash)
@@ -135,6 +136,9 @@ class CleanBuild:
             f.write(output)
             f.write("\nRETURN_CODE %d" % returnCode)
         run.run(["logbeam", "upload", logFilename])
+
+    def _beamLogsDir(self, under, path):
+        run.run(["logbeam", "upload", path, "--under", under])
 
     def _makeForATargetThatMayNotExist(self, logName, target, arguments=""):
         self._makefileForTargetThatMayNotExist(target)

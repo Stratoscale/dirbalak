@@ -76,11 +76,6 @@
                     if (! ob[host.ipAddress])
                         toRemove.unshift(i);
                 }
-                for (var i in toRemove) {
-                    var index = toRemove[i];
-                    self.hosts()[index].unregister();
-                    self.hosts.splice(index, 1);
-                }
             };
         }
         var model = new Model();

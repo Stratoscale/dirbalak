@@ -18,5 +18,5 @@ def addToBuildHostsList(ipAddress):
     tojs.subset("buildHostsList", ipAddress, True)
 
 
-def removeFromBuildHostsList(ipAddress):
-    tojs.subunset("buildHostsList", ipAddress)
+def markHostAsDeadInBuildHostsList(ipAddress):
+    tojs.subset("buildHostsList", ipAddress, False)

@@ -24,24 +24,30 @@ class HostThread(threading.Thread):
             logging.info("Done setting up host")
             tojs.addToBuildHostsList(self._host.ipAddress())
             try:
-                self._hostEventsKey = "buildHost/%s" + self._host.ipAddress()
-                self._jobToJS(None)
+                self._hostEventsKey = "buildHost/%s" % self._host.ipAddress()
+                self._jobToJS(None, None)
                 while True:
                     self._buildOne()
             finally:
-                tojs.removeFromBuildHostsList(self._host.ipAddress())
+                self._diedToJS()
         except:
             logging.exception("rack run host thread dies")
         finally:
             self._removeCallback(self)
 
-    def _jobToJS(self, job):
+    def _jobToJS(self, job, buildID):
         tojs.set("buildHost/%s" % self._host.ipAddress(), dict(ipAddress=self._host.ipAddress(), job=job))
         if job is None:
             tojs.appendEvent(self._hostEventsKey, dict(type="text", text="Became idle"))
         else:
             tojs.appendEvent(self._hostEventsKey, dict(
-                type="job_started", host=self._host.ipAddress(), job=job))
+                type="job_started", host=self._host.ipAddress(), job=job,
+                buildID=buildID))
+
+    def _diedToJS(self):
+        tojs.markHostAsDeadInBuildHostsList(self._host.ipAddress())
+        tojs.set("buildHost/%s" % self._host.ipAddress(), dict(ipAddress=self._host.ipAddress(), job=None))
+        tojs.appendEvent(self._hostEventsKey, dict(type="text", text="Dies"))
 
     def _projectEvent(self, job, buildID, type):
         tojs.appendEvent("project/" + job['basename'], dict(
@@ -58,7 +64,7 @@ class HostThread(threading.Thread):
             return
         logging.info("Received job, building: '%(job)s'", dict(job=job))
         buildID = "%s_%s" % (datetime.datetime.now().strftime('%Y%m%d_%H%M%S'), job['hexHash'])
-        self._jobToJS(job)
+        self._jobToJS(job, buildID)
         self._projectEvent(job, buildID, "build_started")
         try:
             self._host.build(
@@ -78,4 +84,4 @@ class HostThread(threading.Thread):
             self._projectEvent(job, buildID, "build_succeeded")
             tojs.appendEvent(self._hostEventsKey, dict(type="text", text="Job succeeded"))
         finally:
-            self._jobToJS(None)
+            self._jobToJS(None, None)
