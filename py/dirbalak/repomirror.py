@@ -6,6 +6,7 @@ from dirbalak import manifest
 import upseto.manifest
 import solvent.manifest
 import os
+import time
 
 
 class RepoMirror:
@@ -79,7 +80,7 @@ class RepoMirror:
             if hash == 'origin/master' or hash == self._git.hash('origin/master'):
                 return None
             result = {}
-            timeDeltaSeconds = self.commitTimestamp('origin/master') - self.commitTimestamp(hash)
+            timeDeltaSeconds = time.time() - self.commitTimestamp('origin/master')
             if timeDeltaSeconds > 0:
                 result['time'] = timeDeltaSeconds
             left, right = self._git.run(
