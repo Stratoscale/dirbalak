@@ -11,8 +11,9 @@ class Pool(threading.Thread):
     _NICENESS = [0]
 #    _NICENESS = [0, 0.2, 0.8, 0.9, 1]
 
-    def __init__(self, queue):
+    def __init__(self, queue, jobDoneCallback):
         self._queue = queue
+        self._jobDoneCallback = jobDoneCallback
         self._queueLock = threading.Lock()
         self._client = clientfactory.factory()
         self._hostThreads = []
@@ -39,7 +40,7 @@ class Pool(threading.Thread):
                 continue
             logging.info("Allocated a host")
             self._hostThreads.append(hostthread.HostThread(
-                self._queue, self._queueLock, host, self._remove))
+                self._queue, self._queueLock, host, self._remove, self._jobDoneCallback))
 
     def _remove(self, thread):
         logging.info("Host thread terminated")

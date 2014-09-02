@@ -55,12 +55,15 @@ class OfficialBuildHost:
         self._ssh.run.script(
             "export PYTHONPATH=/root/dirbalakbuild.egg\n"
             "export SOLVENT_CONFIG='OFFICIAL_BUILD: Yes'\n"
-            "%s >& /tmp/dirbalak.cleanbuild.log\n"
+            "%(commandLine)s >& /tmp/%(cleanBuildLogFilename)s\n"
             "result=$?\n"
-            "cat /tmp/dirbalak.cleanbuild.log\n"
-            "echo RETURN_CODE $result >> /tmp/dirbalak.cleanbuild.log\n"
-            "logbeam upload /tmp/dirbalak.cleanbuild.log\n"
-            "exit $result\n" % cleanBuildLine)
+            "cat /tmp/%(cleanBuildLogFilename)s\n"
+            "echo >> /tmp/%(cleanBuildLogFilename)s\n"
+            "echo RETURN_CODE $result >> /tmp/%(cleanBuildLogFilename)s\n"
+            "logbeam upload /tmp/%(cleanBuildLogFilename)s\n"
+            "exit $result\n" % dict(
+                commandLine=cleanBuildLine,
+                cleanBuildLogFilename=config.CLEANBUILD_LOG_FILENAME))
 
     def _configureSolvent(self):
         with open("/etc/solvent.conf") as f:
@@ -71,9 +74,9 @@ class OfficialBuildHost:
 
     def _configureLogbeam(self, gitURL, logbeamBuildID):
         basename = gitwrapper.originURLBasename(gitURL)
-        under = os.path.join("dirbalak", basename, logbeamBuildID)
-        config = subprocess.check_output(["logbeam", "createConfig", "--under", under])
-        self._ssh.ftp.putContents("/etc/logbeam.config", config)
+        under = os.path.join(config.LOGBEAM_ROOT_DIR, basename, logbeamBuildID)
+        conf = subprocess.check_output(["logbeam", "createConfig", "--under", under])
+        self._ssh.ftp.putContents("/etc/logbeam.config", conf)
 
 
 if __name__ == "__main__":

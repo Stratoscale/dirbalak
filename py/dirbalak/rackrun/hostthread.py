@@ -7,11 +7,12 @@ from dirbalak.server import tojs
 
 
 class HostThread(threading.Thread):
-    def __init__(self, queue, queueLock, host, removeCallback):
+    def __init__(self, queue, queueLock, host, removeCallback, jobDoneCallback):
         self._queue = queue
         self._queueLock = queueLock
         self._host = host
         self._removeCallback = removeCallback
+        self._jobDoneCallback = jobDoneCallback
         self._host.setForceReleaseCallback(self._allocationForcelyReleased)
         threading.Thread.__init__(self)
         self.daemon = True
@@ -76,6 +77,7 @@ class HostThread(threading.Thread):
                 self._queue.done(job, False)
             tojs.appendEvent(self._hostEventsKey, dict(type="text", text="Job failed"))
             self._projectEvent(job, buildID, "build_failed")
+            successful = False
             raise
         else:
             logging.info("Job succeeded: '%(job)s'", dict(job=job))
@@ -83,5 +85,7 @@ class HostThread(threading.Thread):
                 self._queue.done(job, True)
             self._projectEvent(job, buildID, "build_succeeded")
             tojs.appendEvent(self._hostEventsKey, dict(type="text", text="Job succeeded"))
+            successful = True
         finally:
             self._jobToJS(None, None)
+            self._jobDoneCallback(job=job, successfull=successful)

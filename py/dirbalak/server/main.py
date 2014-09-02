@@ -12,20 +12,14 @@ from dirbalak.server import scriptologresource
 from dirbalak.rackrun import pool
 from dirbalak.rackrun import config
 from twisted.web import static
+import logbeam.config
 import logging
-import signal
-import sys
 import subprocess
 import atexit
 
 
-def _exit(*args):
-    sys.exit()
-
-signal.signal(signal.SIGTERM, _exit)
-signal.signal(signal.SIGINT, _exit)
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logbeam.config.load()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--webPort", type=int, default=6001)
@@ -54,7 +48,16 @@ fetchThread.start(multiverseInstance)
 callbacks.Callbacks(multiverseInstance)
 queueInstance = queue.Queue(args.officialObjectStore, multiverseInstance)
 fetchThread.addPostTraverseCallback(queueInstance.recalculate)
-pool.Pool(queueInstance)
+graphResource = graphsresource.GraphsResource(multiverseInstance)
+
+
+def jobDone(job, successfull):
+    project = multiverseInstance.projects[job['basename']]
+    project.refreshMasterBuildHistory()
+    graphResource.update()
+
+
+pool.Pool(queueInstance, jobDoneCallback=jobDone)
 
 render.addTemplateDir("html")
 render.DEFAULTS['title'] = "Dirbalak"
@@ -71,7 +74,6 @@ root.putChild("queue", rootresource.Renderer("queue.html", dict(activeMenuItem="
 root.putChild("buildHosts", rootresource.Renderer("buildHosts.html", dict(activeMenuItem="Build Hosts")))
 root.putChild("project", resources.Projects())
 root.putChild("scriptolog", scriptologresource.ScriptologResource(multiverseInstance))
-graphResource = graphsresource.GraphsResource(multiverseInstance)
 root.putChild("graphs", graphResource)
 fetchThread.addPostTraverseCallback(graphResource.update)
 if args.unsecured:

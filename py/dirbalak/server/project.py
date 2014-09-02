@@ -1,6 +1,7 @@
 from dirbalak import repomirrorcache
 from upseto import gitwrapper
 from dirbalak.server import tojs
+from dirbalak.server import projectmasterbuildhistory
 from dirbalak import config
 
 
@@ -14,6 +15,8 @@ class Project:
         self._basename = gitwrapper.originURLBasename(gitURL)
         self._mirror = repomirrorcache.get(gitURL)
         self._traverse = None
+        self._masterBuildHistory = projectmasterbuildhistory.ProjectMasterBuildHistory(
+            basename=self._basename)
 
     def gitURL(self):
         return self._gitURL
@@ -27,6 +30,12 @@ class Project:
     def buildRootFS(self):
         return config.NO_DIRBALAK_MANIFEST_BUILD_ROOTFS if self._defaultRootFS else None
 
+    def masterBuildHistory(self):
+        return self._masterBuildHistory.history()
+
+    def refreshMasterBuildHistory(self):
+        self._masterBuildHistory.refresh()
+
     def needsFetch(self, reason):
         tojs.appendEvent("project/" + self._basename, dict(
             type='text', text="Needs Fetch due to %s" % reason))
@@ -35,6 +44,7 @@ class Project:
     def setTraverse(self, traverse):
         self._traverse = traverse
         self._addToProjectsList()
+        self._masterBuildHistory.setMaster(self._mirror.hash('origin/master'))
         asDict = dict(
             name=self._basename,
             gitURL=self._gitURL, owner=self._owner, group=self._group,

@@ -40,7 +40,8 @@ class Graph:
 
     def _attributesToString(self, attributes):
         withQuotations = dict(attributes)
-        for toQuote in ['label', 'color', 'URL'] + [k for k in withQuotations if k.startswith("text_")]:
+        TO_QUOTE = ['label', 'color', 'URL', 'fillcolor']
+        for toQuote in TO_QUOTE + [k for k in withQuotations if k.startswith("text_")]:
             if toQuote in withQuotations:
                 withQuotations[toQuote] = '"' + withQuotations[toQuote] + '"'
         if 'cluster' in withQuotations:

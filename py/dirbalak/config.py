@@ -10,3 +10,6 @@ BUILD_DIRECTORY = os.path.join(BUILD_CHROOT, "home", "dirbalak")
 OFFICIAL_BUILD_ROOTFS = "rootfs-build__rootfs__7b80c2d6042097d3b154399e0bc60aa8bfdf7bea__bootstrap"
 NO_DIRBALAK_MANIFEST_BUILD_ROOTFS = \
     "rootfs-build__rootfs__7b80c2d6042097d3b154399e0bc60aa8bfdf7bea__bootstrap"
+
+LOGBEAM_ROOT_DIR = "dirbalak"
+CLEANBUILD_LOG_FILENAME = "dirbalak.cleanbuild.log"
