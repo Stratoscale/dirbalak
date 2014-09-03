@@ -71,7 +71,7 @@
 
         <div>
             <button data-bind="click: requestFetch" class="btn btn-primary">Request Fetch</button>
-            <a class="btn btn-warning" download="script.sh" href="/scriptolog/{{project}}/updateAllDependencies">Update Dependencies</a>
+            <button data-bind="click: updateDependencies" class="btn btn-warning">Update Dependencies</button>
         </div>
     </div>
 
@@ -104,6 +104,13 @@
                 return values[left.type] < values[right.type] ? -1 : 1;
             return left.basename < right.basename ? -1 : 1;
         }
+        function makeid() {
+            var text = "";
+            var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            for (var i = 0; i < 16; i++)
+                text += possible.charAt(Math.floor(Math.random() * possible.length));
+            return text;
+        }
         var projectBasenameArgument = "{{project}}";
         function Model(project) {
             var self = this;
@@ -114,6 +121,7 @@
             self.owner = ko.observable("");
             self.group = ko.observable("");
             self.events = ko.observableArray([]);
+            self.scriptFilename = makeid() + ".txt";
 
             self.lastCommitText = ko.computed( function() {
                 var now = (new Date()).getTime() / 1000;
@@ -145,6 +153,12 @@ z = ob;
             self.requestFetch = function() {
                 areYouSureModal("Request Fetch", "Fetching is expensive. Are you sure you require it now?", "Fetch",
                         function(){ ui.command('userRequestsFetch', {project: self.project}); });
+            };
+
+            self.updateDependencies = function() {
+                window.location.href = "/scriptolog/{{project}}/updateAllDependencies?filename=" + self.scriptFilename;
+                notificationModal("Update All Dependecies",
+                        "Copy paste the following to a shell: <pre>bash ~/Downloads/" + self.scriptFilename + "</pre>");
             };
         }
         var model = new Model("{{project}}");

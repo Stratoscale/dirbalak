@@ -33,5 +33,7 @@ class _Static(resource.Resource):
         resource.Resource.__init__(self)
 
     def render(self, request):
+        if 'filename' in request.args:
+            request.setHeader("Content-Disposition", 'attachment; filename="%s";' % request.args['filename'][0])
         request.setHeader("Content-Type", self._mimeType)
         return self._contents
