@@ -23,14 +23,17 @@ class HostThread(threading.Thread):
             logging.info("Setting up host")
             self._host.setUp(config.GITHUB_NETRC_FILE)
             logging.info("Done setting up host")
-            tojs.addToBuildHostsList(self._host.ipAddress())
             try:
-                self._hostEventsKey = "buildHost/%s" % self._host.ipAddress()
-                self._jobToJS(None, None)
-                while True:
-                    self._buildOne()
+                tojs.addToBuildHostsList(self._host.ipAddress())
+                try:
+                    self._hostEventsKey = "buildHost/%s" % self._host.ipAddress()
+                    self._jobToJS(None, None)
+                    while True:
+                        self._buildOne()
+                finally:
+                    self._diedToJS()
             finally:
-                self._diedToJS()
+                self._host.close()
         except:
             logging.exception("rack run host thread dies")
         finally:
