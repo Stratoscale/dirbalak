@@ -29,6 +29,8 @@ class ProjectMasterBuildHistory:
         dirname = os.path.join(config.LOGBEAM_ROOT_DIR, self._basename)
         logsFilesystem = logbeam.compressedftpfilesystemabstraction.CompressedFTPFilesystemAbstraction()
         with logsFilesystem.filesystem() as fs:
+            if not fs.path.exists(dirname):
+                return
             for build in fs.listdir(dirname):
                 if not build.endswith(self._master):
                     continue
