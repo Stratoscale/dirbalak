@@ -7,9 +7,9 @@ from dirbalak.server import tojs
 
 
 class HostThread(threading.Thread):
-    def __init__(self, queue, queueLock, host, removeCallback, jobDoneCallback):
-        self._queue = queue
-        self._queueLock = queueLock
+    def __init__(self, jobQueue, jobQueueLock, host, removeCallback, jobDoneCallback):
+        self._jobQueue = jobQueue
+        self._jobQueueLock = jobQueueLock
         self._host = host
         self._removeCallback = removeCallback
         self._jobDoneCallback = jobDoneCallback
@@ -61,8 +61,8 @@ class HostThread(threading.Thread):
         self._host.close()
 
     def _buildOne(self):
-        with self._queueLock:
-            job = self._queue.next()
+        with self._jobQueueLock:
+            job = self._jobQueue.next()
         if job is None:
             time.sleep(15)
             return
@@ -76,16 +76,16 @@ class HostThread(threading.Thread):
                 buildRootFS=job['buildRootFS'], logbeamBuildID=buildID)
         except:
             logging.exception("Job failed: '%(job)s'", dict(job=job))
-            with self._queueLock:
-                self._queue.done(job, False)
+            with self._jobQueueLock:
+                self._jobQueue.done(job, False)
             tojs.appendEvent(self._hostEventsKey, dict(type="text", text="Job failed"))
             self._projectEvent(job, buildID, "build_failed")
             successful = False
             raise
         else:
             logging.info("Job succeeded: '%(job)s'", dict(job=job))
-            with self._queueLock:
-                self._queue.done(job, True)
+            with self._jobQueueLock:
+                self._jobQueue.done(job, True)
             self._projectEvent(job, buildID, "build_succeeded")
             tojs.appendEvent(self._hostEventsKey, dict(type="text", text="Job succeeded"))
             successful = True

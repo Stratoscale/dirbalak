@@ -6,7 +6,7 @@ from dirbalak.server import tojs
 import collections
 
 
-class Queue:
+class JobQueue:
     NON_MASTER_DEPENDENCIES = 1
     MASTERS_NOT_BUILT = 2
     MASTERS_WHICH_BUILD_ONLY_FAILED = 3

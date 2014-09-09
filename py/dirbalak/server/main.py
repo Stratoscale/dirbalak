@@ -1,25 +1,10 @@
-from realtimewebui import server
-from realtimewebui import rootresource
-from realtimewebui import render
-import argparse
-from dirbalak.server import fetchthread
-from dirbalak.server import multiverse
-from dirbalak.server import resources
-from dirbalak.server import graphsresource
-from dirbalak.server import callbacks
-from dirbalak.rackrun import queue
-from dirbalak.server import scriptologresource
-from dirbalak.rackrun import pool
-from dirbalak.rackrun import config
-from twisted.web import static
-import logbeam.config
 import logging
-import subprocess
-import atexit
+import argparse
+import realtimewebui.config
+from dirbalak.rackrun import config
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logbeam.config.load()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--webPort", type=int, default=6001)
@@ -32,10 +17,34 @@ parser.add_argument("--multiverseFile", required=True)
 parser.add_argument("--officialObjectStore", required=True)
 parser.add_argument("--unsecured", action="store_true")
 parser.add_argument("--githubNetRCFile", required=True)
+parser.add_argument("--realtimewebuiRoot")
+parser.add_argument("--dirbalakRoot", default=".")
 args = parser.parse_args()
 
 config.GITHUB_NETRC_FILE = args.githubNetRCFile
+if args.realtimewebuiRoot is not None:
+    realtimewebui.config.REALTIMEWEBUI_ROOT_DIRECTORY = args.realtimewebuiRoot
 
+
+from realtimewebui import server
+from realtimewebui import rootresource
+from realtimewebui import render
+from dirbalak.server import fetchthread
+from dirbalak.server import multiverse
+from dirbalak.server import resources
+from dirbalak.server import graphsresource
+from dirbalak.server import callbacks
+from dirbalak.rackrun import jobqueue
+from dirbalak.server import scriptologresource
+from dirbalak.rackrun import pool
+from twisted.web import static
+import logbeam.config
+import subprocess
+import atexit
+import os
+
+
+logbeam.config.load()
 logbeamWebFrontend = subprocess.Popen([
     "logbeam", 'webfrontend', "--port", str(args.logbeamWebFrontendPort),
     "--basicAuthUser", args.username, "--basicAuthPassword", args.password])
@@ -46,8 +55,8 @@ multiverseInstance = multiverse.Multiverse.load(args.multiverseFile, fetchThread
 multiverseInstance.needsFetch("Dirbalak starting")
 fetchThread.start(multiverseInstance)
 callbacks.Callbacks(multiverseInstance)
-queueInstance = queue.Queue(args.officialObjectStore, multiverseInstance)
-fetchThread.addPostTraverseCallback(queueInstance.recalculate)
+jobQueue = jobqueue.JobQueue(args.officialObjectStore, multiverseInstance)
+fetchThread.addPostTraverseCallback(jobQueue.recalculate)
 graphResource = graphsresource.GraphsResource(multiverseInstance)
 
 
@@ -57,9 +66,9 @@ def jobDone(job, successfull):
     graphResource.update()
 
 
-pool.Pool(queueInstance, jobDoneCallback=jobDone)
+pool.Pool(jobQueue, jobDoneCallback=jobDone)
 
-render.addTemplateDir("html")
+render.addTemplateDir(os.path.join(args.dirbalakRoot, 'html'))
 render.DEFAULTS['title'] = "Dirbalak"
 render.DEFAULTS['brand'] = "Dirbalak"
 render.DEFAULTS['mainMenu'] = [
@@ -67,7 +76,7 @@ render.DEFAULTS['mainMenu'] = [
     dict(title="Queue", href="/queue"),
     dict(title="Build Hosts", href="/buildHosts")]
 root = rootresource.rootResource()
-root.putChild("js", static.File("js"))
+root.putChild("js", static.File(os.path.join(args.dirbalakRoot, "js")))
 rootresource.GLOBAL_PARAMETERS['logbeamWebFrontendPort'] = args.logbeamWebFrontendPort
 root.putChild("projects", rootresource.Renderer("projects.html", dict(activeMenuItem="Projects")))
 root.putChild("queue", rootresource.Renderer("queue.html", dict(activeMenuItem="Queue")))

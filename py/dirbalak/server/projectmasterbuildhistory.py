@@ -12,7 +12,7 @@ class ProjectMasterBuildHistory:
 
     def history(self):
         result = []
-        for build in sorted(self._builds.keys())[-10: ]:
+        for build in sorted(self._builds.keys())[-10:]:
             result.append(self._builds[build])
         return result
 

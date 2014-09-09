@@ -1,0 +1,12 @@
+[Unit]
+Description=Dirbalak CI Server
+After=network.target
+
+[Service]
+Type=simple
+Environment='PYTHONPATH=/usr/share/dirbalak/dirbalakserver.egg'
+EnvironmentFile=/etc/dirbalak.environment
+ExecStart=/bin/sh -c "exec /usr/bin/python -m dirbalak.server.main --multiverse=/etc/dirbalak.multiverse.yaml --githubNetRCFile=/etc/dirbalak.netrc --officialObjectStore=$OFFICIAL_OBJECT_STORE $PORT_SETTINGS --realtimewebuiRoot=/usr/share/dirbalak/realtimewebui --dirbalakRoot=/usr/share/dirbalak"
+
+[Install]
+WantedBy=multi-user.target
