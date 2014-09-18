@@ -8,7 +8,8 @@ import sys
 
 
 class SpawnGithubWebEventListener(threading.Thread):
-    def __init__(self, port=60004, downgradeUID=10000, downgradeGID=10000):
+    def __init__(self, callback, port=60004, downgradeUID=10000, downgradeGID=10000):
+        self._callback = callback
         self._port = port
         self._downgradeUID = downgradeUID
         self._downgradeGID = downgradeGID
@@ -27,13 +28,6 @@ class SpawnGithubWebEventListener(threading.Thread):
         try:
             os.setgid(self._downgradeGID)
             os.setuid(self._downgradeUID)
-#            for fd in xrange(3, 100):
-#                if fd == self._writePipe:
-#                    continue
-#                try:
-#                    os.close(fd)
-#                except OSError:
-#                    pass
             sys.stdout = os.fdopen(self._writePipe, "w")
             githubwebeventlistener.main(self._port)
         except:
@@ -46,7 +40,7 @@ class SpawnGithubWebEventListener(threading.Thread):
         try:
             while True:
                 repo = read.readline().strip()
-                print repo
+                self._callback(repo)
         except:
             logging.exception("Child event listener died, commiting suicide")
             os.kill(self._childPid, signal.SIGKILL)
@@ -58,5 +52,7 @@ class SpawnGithubWebEventListener(threading.Thread):
 
 if __name__ == "__main__":
     import time
-    SpawnGithubWebEventListener()
+    def printCallback(repo):
+        print repo
+    SpawnGithubWebEventListener(printCallback)
     time.sleep(1000)

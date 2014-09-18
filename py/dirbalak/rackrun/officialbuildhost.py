@@ -1,6 +1,8 @@
 from rackattack.ssh import connection
 from rackattack import api
 from dirbalak import config
+from dirbalak import rackrun
+import dirbalak.rackrun.config
 import os
 import re
 import logging
@@ -39,7 +41,8 @@ class OfficialBuildHost:
         logging.info("Done waiting for ssh connection")
         self._configureSolvent()
         self._ssh.ftp.putFile("/root/.netrc", netRCFile)
-        self._ssh.ftp.putFile("/root/dirbalakbuild.egg", "build/dirbalakbuild.egg")
+        self._ssh.ftp.putFile(
+            "/root/dirbalakbuild.egg", os.path.join(rackrun.config.DIRBALAK_EGG_DIR, "dirbalakbuild.egg"))
         self._ssh.ftp.putFile("/etc/resolv.conf", "/etc/resolv.conf")
         self._ssh.run.script("sed 's/.*requiretty.*//' -i /etc/sudoers")
         logging.info("Setup of official build host completed successfully")

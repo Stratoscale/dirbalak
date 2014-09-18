@@ -1,1 +1,2 @@
 GITHUB_NETRC_FILE = None
+DIRBALAK_EGG_DIR = "build"

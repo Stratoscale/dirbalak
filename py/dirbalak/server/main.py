@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--webPort", type=int, default=6001)
 parser.add_argument("--webSocketPort", type=int, default=6002)
 parser.add_argument("--logbeamWebFrontendPort", type=int, default=6003)
-parser.add_argument("--githubListenerPort", type=int, default=6004)
+parser.add_argument("--githubListenerPort", type=int)
 parser.add_argument("--username", default="stratotest")
 parser.add_argument("--password", default="2good2betruebettercallchucknorris")
 parser.add_argument("--multiverseFile", required=True)
@@ -34,9 +34,12 @@ from dirbalak.server import multiverse
 from dirbalak.server import resources
 from dirbalak.server import graphsresource
 from dirbalak.server import callbacks
+from dirbalak.server import spawngithubwebeventlistener
 from dirbalak.rackrun import jobqueue
 from dirbalak.server import scriptologresource
 from dirbalak.rackrun import pool
+from dirbalak import rackrun
+from upseto import gitwrapper
 from twisted.web import static
 import logbeam.config
 import subprocess
@@ -44,6 +47,23 @@ import atexit
 import os
 
 
+multiverseInstance = None
+
+
+def fetchRepoFromWebHook(repo):
+    global multiverseInstance
+    if multiverseInstance is None:
+        return
+    basename = gitwrapper.originURLBasename(repo)
+    if basename not in multiverseInstance.projects:
+        logging.error("Webhook called for unfamiliar repo '%(repo)s'", dict(repo=repo))
+        return
+    project = multiverseInstance.projects[basename]
+    project.needsFetch('Webhook triggered fetch')
+
+
+if args.githubListenerPort is not None:
+    spawngithubwebeventlistener.SpawnGithubWebEventListener(fetchRepoFromWebHook)
 logbeam.config.load()
 logbeamWebFrontend = subprocess.Popen([
     "logbeam", 'webfrontend', "--port", str(args.logbeamWebFrontendPort),
@@ -68,6 +88,7 @@ def jobDone(job, successfull):
 
 pool.Pool(jobQueue, jobDoneCallback=jobDone)
 
+rackrun.config.DIRBALAK_EGG_DIR = args.dirbalakRoot
 render.addTemplateDir(os.path.join(args.dirbalakRoot, 'html'))
 render.DEFAULTS['title'] = "Dirbalak"
 render.DEFAULTS['brand'] = "Dirbalak"
@@ -77,6 +98,7 @@ render.DEFAULTS['mainMenu'] = [
     dict(title="Build Hosts", href="/buildHosts")]
 root = rootresource.rootResource()
 root.putChild("js", static.File(os.path.join(args.dirbalakRoot, "js")))
+root.putChild("favicon.ico", static.File(os.path.join(args.dirbalakRoot, "static", "favicon.ico")))
 rootresource.GLOBAL_PARAMETERS['logbeamWebFrontendPort'] = args.logbeamWebFrontendPort
 root.putChild("projects", rootresource.Renderer("projects.html", dict(activeMenuItem="Projects")))
 root.putChild("queue", rootresource.Renderer("queue.html", dict(activeMenuItem="Queue")))

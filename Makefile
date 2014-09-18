@@ -35,6 +35,7 @@ install: build
 	sudo cp build/*.egg /usr/share/dirbalak
 	sudo cp -r html /usr/share/dirbalak/
 	sudo cp -r js /usr/share/dirbalak/
+	sudo cp -r static /usr/share/dirbalak/
 	sudo cp -r ../realtimewebui/js ../realtimewebui/html ../realtimewebui/externals /usr/share/dirbalak/realtimewebui
 	sudo cp dirbalak.service /usr/lib/systemd/system/dirbalak.service
 	sudo systemctl enable dirbalak.service

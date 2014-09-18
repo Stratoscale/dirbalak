@@ -167,6 +167,7 @@ z = ob;
         var ui = new RealTimeWebUI();
         ui.register("project/{{project}}", model.setData);
         ui.register("events/project/{{project}}", model.setEvents);
+        ui.register("graph/generation", model.updateGraph);
     </script>
 
 {% endblock %}
