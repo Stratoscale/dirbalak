@@ -2,11 +2,14 @@ import logging
 import threading
 import time
 import datetime
+import traceback
 from dirbalak.rackrun import config
 from dirbalak.server import tojs
 
 
 class HostThread(threading.Thread):
+    _DIE_AFTER_FAILES = 8
+
     def __init__(self, jobQueue, jobQueueLock, host, removeCallback, jobDoneCallback):
         self._jobQueue = jobQueue
         self._jobQueueLock = jobQueueLock
@@ -28,8 +31,14 @@ class HostThread(threading.Thread):
                 try:
                     self._hostEventsKey = "buildHost/%s" % self._host.ipAddress()
                     self._jobToJS(None, None)
+                    failes = 0
                     while True:
-                        self._buildOne()
+                        backtrace = self._buildOne()
+                        if backtrace is not None:
+                            failes += 1
+                        if failes > self._DIE_AFTER_FAILES:
+                            raise Exception(
+                                "Dying since reachin %d build failures" % self._DIE_AFTER_FAILES)
                 finally:
                     self._diedToJS()
             finally:
@@ -81,7 +90,7 @@ class HostThread(threading.Thread):
             tojs.appendEvent(self._hostEventsKey, dict(type="text", text="Job failed"))
             self._projectEvent(job, buildID, "build_failed")
             successful = False
-            raise
+            return traceback.format_exc()
         else:
             logging.info("Job succeeded: '%(job)s'", dict(job=job))
             with self._jobQueueLock:
