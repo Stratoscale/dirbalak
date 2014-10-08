@@ -16,8 +16,10 @@ class OfficialBuildHost:
     def __init__(self, client, nice=0):
         requirement = api.Requirement(imageLabel=config.OFFICIAL_BUILD_ROOTFS, imageHint="build")
         allocationInfo = api.AllocationInfo(user="dirbalak", purpose="officialbuild", nice=nice)
+        logging.info("Construction of an official build host: Before allocation")
         self._allocation = client.allocate(
             requirements=dict(node=requirement), allocationInfo=allocationInfo)
+        logging.info("Construction of an official build host: Allocation succeeded")
 
     def setForceReleaseCallback(self, callback):
         self._allocation.setForceReleaseCallback(callback)

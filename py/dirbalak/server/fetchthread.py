@@ -35,7 +35,13 @@ class FetchThread(threading.Thread):
     def _work(self):
         mirror = self._queue.get()
         logging.info("Fetching gitURL %(url)s", dict(url=mirror.gitURL()))
-        mirror.fetch()
+        try:
+            mirror.fetch()
+        except:
+            logging.exception("Unable to fetch '%(url)s'", dict(url=mirror.gitURL()))
+            self._queue.put(mirror)
+            time.sleep(10)
+            return
         hash = mirror.hash('origin/master')
         if hash != self._hashes.get(mirror.gitURL(), None):
             self._traverseNeeded = True
