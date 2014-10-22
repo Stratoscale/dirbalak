@@ -24,10 +24,14 @@ class JobQueue:
             self.MASTERS_NOT_BUILT: 0,
             self.MASTERS_WHICH_BUILD_ONLY_FAILED: 0,
             self.MASTERS_REBUILD: 0}
+        self._interPriorityRotation = [
+            self.NON_MASTER_DEPENDENCIES, self.MASTERS_NOT_BUILT,
+            self.MASTERS_WHICH_BUILD_ONLY_FAILED, self.MASTERS_REBUILD]
 
     def next(self):
-        for key in sorted(self._queue.keys()):
-            for job in self._queue[key]:
+        self._interPriorityRotation.append(self._interPriorityRotation.pop(0))
+        for key in self._interPriorityRotation:
+            for job in self._queue.get(key, []):
                 if not self._buildState.get(job['gitURL'], job['hexHash'])['inProgress']:
                     self._buildState.inProgress(job['gitURL'], job['hexHash'])
                     self._rotateQueueByOne(self._queue, key)

@@ -8,7 +8,7 @@ import time
 
 class Pool(threading.Thread):
     _TIMEOUT = 8 * 60
-    _NICENESS = [0]
+    _NICENESS = [0, 0.2, 0.8]
 #    _NICENESS = [0, 0.2, 0.8, 0.9, 1]
 
     def __init__(self, jobQueue, jobDoneCallback):
