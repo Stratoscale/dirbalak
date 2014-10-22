@@ -26,26 +26,24 @@ class HostThread(threading.Thread):
             logging.info("Setting up host")
             self._host.setUp(config.GITHUB_NETRC_FILE)
             logging.info("Done setting up host")
+            tojs.addToBuildHostsList(self._host.ipAddress())
             try:
-                tojs.addToBuildHostsList(self._host.ipAddress())
-                try:
-                    self._hostEventsKey = "buildHost/%s" % self._host.ipAddress()
-                    self._jobToJS(None, None)
-                    failes = 0
-                    while True:
-                        backtrace = self._buildOne()
-                        if backtrace is not None:
-                            failes += 1
-                        if failes > self._DIE_AFTER_FAILES:
-                            raise Exception(
-                                "Dying since reachin %d build failures" % self._DIE_AFTER_FAILES)
-                finally:
-                    self._diedToJS()
+                self._hostEventsKey = "buildHost/%s" % self._host.ipAddress()
+                self._jobToJS(None, None)
+                failes = 0
+                while True:
+                    backtrace = self._buildOne()
+                    if backtrace is not None:
+                        failes += 1
+                    if failes > self._DIE_AFTER_FAILES:
+                        raise Exception(
+                            "Dying since reachin %d build failures" % self._DIE_AFTER_FAILES)
             finally:
-                self._host.close()
+                self._diedToJS()
         except:
             logging.exception("rack run host thread dies")
         finally:
+            self._host.close()
             self._removeCallback(self)
 
     def _jobToJS(self, job, buildID):
