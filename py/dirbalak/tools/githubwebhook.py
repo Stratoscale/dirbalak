@@ -12,6 +12,7 @@ interactiveAddCmd = subparsers.add_parser("addInteractive", help="add the hook i
 interactiveAddCmd.add_argument("--hook", required=True)
 args = parser.parse_args()
 
+
 def getProjects():
     result = []
     for i in xrange(1, 100):
@@ -23,9 +24,11 @@ def getProjects():
             return result
         result += response
 
+
 def getProjectHooks(project):
     response = requests.get(project[u'hooks_url'], auth=(args.username, args.password)).json()
     return response
+
 
 def addHook(project, hook):
     POST = \

@@ -52,6 +52,7 @@ class SpawnGithubWebEventListener(threading.Thread):
 
 if __name__ == "__main__":
     import time
+
     def printCallback(repo):
         print repo
     SpawnGithubWebEventListener(printCallback)

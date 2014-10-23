@@ -189,6 +189,8 @@ class CleanBuild:
                 os.path.join(config.BUILD_CHROOT, mountBind)])
 
     def _configureEnvironment(self):
-        if 'OFFICIAL' in os.environ.get('SOLVENT_CONFIG', ""):
-            return
-        os.environ['SOLVENT_CLEAN'] = 'Yes'
+        if 'OFFICIAL' not in os.environ.get('SOLVENT_CONFIG', ""):
+            os.environ['SOLVENT_CLEAN'] = 'Yes'
+        os.environ['SOLVENT_CONFIG'] = "\n".join([
+            os.environ.get('SOLVENT_CONFIG', ""),
+            "FORCE: yes"])
