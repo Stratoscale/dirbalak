@@ -98,6 +98,7 @@ render.DEFAULTS['mainMenu'] = [
     dict(title="Build Hosts", href="/buildHosts")]
 root = rootresource.rootResource()
 root.putChild("js", static.File(os.path.join(args.dirbalakRoot, "js")))
+root.putChild("static", static.File(os.path.join(args.dirbalakRoot, "static")))
 root.putChild("favicon.ico", static.File(os.path.join(args.dirbalakRoot, "static", "favicon.ico")))
 rootresource.GLOBAL_PARAMETERS['logbeamWebFrontendPort'] = args.logbeamWebFrontendPort
 root.putChild("projects", rootresource.Renderer("projects.html", dict(activeMenuItem="Projects")))
