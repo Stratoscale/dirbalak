@@ -1,6 +1,7 @@
 import os
 import logging
 from dirbalak import repomirrorcache
+from dirbalak import makefiletricks
 from upseto import run
 from upseto import gitwrapper
 from dirbalak import config
@@ -32,6 +33,7 @@ class CleanBuild:
         self._mountBinds()
         try:
             self._upsetoCheckRequirements()
+            self._checkMakefileForErrors()
             self._makeForATargetThatMayNotExist(
                 logName="02_make_prepareForCleanBuild", target="prepareForCleanBuild")
             self._make(logName="03_make")
@@ -115,6 +117,18 @@ class CleanBuild:
             logName="01_upseto_checkRequirements", command=["upseto", "checkRequirements", "--show"],
             cwd=self._git.directory())
 
+    def _checkMakefileForErrors(self):
+        if makefiletricks.defaultTargetDependsOnTarget(self._git.directory(), 'submit'):
+            raise Exception(
+                "Default target depends on 'submit', makefile is invalid, dirbalak will not build")
+        if makefiletricks.defaultTargetDependsOnTarget(self._git.directory(), 'approve'):
+            raise Exception(
+                "Default target depends on 'approve', makefile is invalid, dirbalak will not build")
+        if not makefiletricks.targetDoesNotDependOnAnything(self._git.directory(), 'submit'):
+            raise Exception("target 'submit' must not have any dependencies")
+        if not makefiletricks.targetDoesNotDependOnAnything(self._git.directory(), 'approve'):
+            raise Exception("target 'approve' must not have any dependencies")
+
     def _make(self, logName, arguments=""):
         logging.info("Running make %(arguments)s", dict(arguments=arguments))
         self._runAndBeamLog(logName, [
@@ -141,10 +155,11 @@ class CleanBuild:
         run.run(["logbeam", "upload", path, "--under", under])
 
     def _makeForATargetThatMayNotExist(self, logName, target, arguments=""):
-        self._makefileForTargetThatMayNotExist(target)
-        self._make(
-            logName=logName,
-            arguments=("-f %s %s " % (self._TEMP_MAKEFILE, target)) + arguments)
+        with makefiletricks.makefileForATargetThatMayNotExists(
+                directory=self._git.directory(), target=target) as tempMakefile:
+            self._make(
+                logName=logName,
+                arguments=("-f %s %s " % (os.path.basename(tempMakefile), target)) + arguments)
 
     def _rackTest(self):
         self._beamLog(logName="06_make_racktest", output="not implemented yet", returnCode=0)
@@ -169,12 +184,6 @@ class CleanBuild:
                 'solvent', 'printlabel', '--product', 'rootfs',
                 '--repositoryBasename', buildRootFSGitBasename], hash=self._hash)
             return label.strip()
-
-    def _makefileForTargetThatMayNotExist(self, target):
-        tempMakefile = os.path.join(config.BUILD_CHROOT, self._TEMP_MAKEFILE.strip("/"))
-        with open(tempMakefile, "w") as f:
-            f.write("include Makefile\n%s:\n" % target)
-        return tempMakefile
 
     def _unmountBinds(self):
         for mountBind in self._MOUNT_BIND:
