@@ -8,6 +8,8 @@ from dirbalak import config
 import re
 import subprocess
 import multiprocessing
+import time
+import solvent.commonmistakes
 
 
 class CleanBuild:
@@ -186,10 +188,16 @@ class CleanBuild:
             return label.strip()
 
     def _unmountBinds(self):
-        for mountBind in self._MOUNT_BIND:
-            subprocess.call(
-                ["sudo", "umount", os.path.join(config.BUILD_CHROOT, mountBind)],
-                stdout=open("/dev/null", "w"), stderr=subprocess.STDOUT)
+        for i in xrange(100):
+            mounts = solvent.commonmistakes.CommonMistakes.mountedUnder(config.BUILD_CHROOT)
+            if len(mounts) == 0:
+                logging.info("After retries successfully unmounted all dangling mounts")
+                return
+            result = subprocess.call(["sudo", "umount", mounts[-1]['path']])
+            if result != 0:
+                logging.warning("Unable to umount '%(path)s'", dict(path=mounts[-1]['path']))
+                time.sleep(0.2)
+        logging.error("Unable to unmount dangling mounts even after many retries")
 
     def _mountBinds(self):
         for mountBind in self._MOUNT_BIND:
