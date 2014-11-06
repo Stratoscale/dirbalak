@@ -12,6 +12,10 @@ class TraverseFilter:
             if dep.type == "dirbalak_build_rootfs":
                 return True
         if not self._solventRootFSArcs:
-            if dep.type == "solvent" and '/rootfs-' in dep.gitURL:
+            if dep.type == "solvent" and self._gitURLIsARootFS(dep.gitURL) and \
+                    not self._gitURLIsARootFS(dep.requiringURL):
                 return True
         return False
+
+    def _gitURLIsARootFS(self, gitURL):
+        return '/rootfs-' in gitURL

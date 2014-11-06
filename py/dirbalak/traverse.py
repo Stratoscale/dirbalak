@@ -5,11 +5,12 @@ import logging
 
 
 Dependency = collections.namedtuple(
-    "Dependency", "gitURL hash requiringURL requiringURLHash type masterHash")
+    "Dependency", "gitURL hash requiringURL requiringURLHash type masterHash broken")
 
 
 class Traverse:
-    def __init__(self):
+    def __init__(self, visitMasterBranchOfEachDependency=True):
+        self._visitMasterBranchOfEachDependency = visitMasterBranchOfEachDependency
         self._visitedTuples = set()
         self._dependencies = []
 
@@ -32,19 +33,25 @@ class Traverse:
             masterHash = mirror.hash('origin/master')
             hash = mirror.branchName(hash)
 
+            broken = not mirror.hashExists(hash)
             dep = Dependency(
                 gitURL=gitURL, hash=hash, requiringURL=requiringURL,
-                requiringURLHash=requiringURLHash, type=type, masterHash=masterHash)
+                requiringURLHash=requiringURLHash, type=type, masterHash=masterHash,
+                broken=broken)
             self._dependencies.append(dep)
 
-            self._traverse(gitURL, 'origin/master', None, None, 'master')
-            for requirement in mirror.upsetoManifest(hash).requirements():
-                self._traverse(requirement['originURL'], requirement['hash'], gitURL, hash, 'upseto')
-            basenameForBuild = self._basenameForBuild(mirror, hash)
-            for requirement in mirror.solventManifest(hash).requirements():
-                basename = gitwrapper.originURLBasename(requirement['originURL'])
-                type = 'dirbalak_build_rootfs' if basename == basenameForBuild else 'solvent'
-                self._traverse(requirement['originURL'], requirement['hash'], gitURL, hash, type)
+            if not broken:
+                upsetoManifest = mirror.upsetoManifest(hash)
+                solventManifest = mirror.solventManifest(hash)
+                basenameForBuild = self._basenameForBuild(mirror, hash)
+                for requirement in upsetoManifest.requirements():
+                    self._traverse(requirement['originURL'], requirement['hash'], gitURL, hash, 'upseto')
+                for requirement in solventManifest.requirements():
+                    basename = gitwrapper.originURLBasename(requirement['originURL'])
+                    type = 'dirbalak_build_rootfs' if basename == basenameForBuild else 'solvent'
+                    self._traverse(requirement['originURL'], requirement['hash'], gitURL, hash, type)
+            if self._visitMasterBranchOfEachDependency:
+                self._traverse(gitURL, 'origin/master', None, None, 'master')
         except:
             logging.error(
                 "Exception while handling '%(gitURL)s'/%(hash)s "

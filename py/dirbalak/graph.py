@@ -4,7 +4,8 @@ import logging
 
 
 class Graph:
-    def __init__(self):
+    def __init__(self, graphAttributes):
+        self._graphAttributes = graphAttributes
         self._arcs = {}
         self._attributes = {}
 
@@ -38,7 +39,7 @@ class Graph:
     def setNodeAttributes(self, node, **attributes):
         self._attributes[node] = attributes
 
-    def _attributesToString(self, attributes):
+    def _attributesToString(self, attributes, join=', '):
         withQuotations = dict(attributes)
         TO_QUOTE = ['label', 'color', 'URL', 'fillcolor']
         for toQuote in TO_QUOTE + [k for k in withQuotations if k.startswith("text_")]:
@@ -46,10 +47,11 @@ class Graph:
                 withQuotations[toQuote] = '"' + withQuotations[toQuote] + '"'
         if 'cluster' in withQuotations:
             del withQuotations['cluster']
-        return ", ".join(["%s=%s" % (k, v) for k, v in withQuotations.iteritems()])
+        return join.join(["%s=%s" % (k, v) for k, v in withQuotations.iteritems()])
 
     def _dotContents(self):
         result = ["digraph G {"]
+        result.append(self._attributesToString(self._graphAttributes, join='\n'))
         clusters = set()
         for node, attributes in self._attributes.iteritems():
             cluster = attributes.get('cluster', None)

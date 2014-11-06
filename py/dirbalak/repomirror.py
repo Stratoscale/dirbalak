@@ -56,6 +56,14 @@ class RepoMirror:
         with self._lock.lock(timeout=self._LOCK_TIMEOUT):
             return self._git.hash(branch)
 
+    def hashExists(self, branch):
+        with self._lock.lock(timeout=self._LOCK_TIMEOUT):
+            try:
+                self._git.checkout(branch)
+                return True
+            except:
+                return False
+
     def branchName(self, hash):
         masterHash = self.hash('origin/master')
         if hash == masterHash:
