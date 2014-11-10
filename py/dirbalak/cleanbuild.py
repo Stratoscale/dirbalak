@@ -44,10 +44,11 @@ class CleanBuild:
                 self._runAndBeamLog(
                     logName="04_solvent_submitbuild",
                     command=["sudo", "-E", "solvent", "submitbuild"], cwd=self._git.directory())
-                self._runAndBeamLog(
-                    logName="05_make_submit",
-                    command=["make", "-f", self._makefileForTargetThatMayNotExist("submit"), "submit"],
-                    cwd=self._git.directory())
+                with makefiletricks.makefileForATargetThatMayNotExists(
+                        directory="/tmp", target="submit") as tempMakefile:
+                    self._runAndBeamLog(
+                        logName="05_make_submit", command=["make", "-f", tempMakefile, "submit"],
+                        cwd=self._git.directory())
             else:
                 logging.info("Non submitting job, skipping submission stages")
                 self._beamLog(logName="04_05_skipped_submission", output="skipped", returnCode=0)
@@ -57,10 +58,11 @@ class CleanBuild:
                     logName="07_solvent_approve_build",
                     command=["sudo", "-E", "solvent", "approve"],
                     cwd=self._git.directory())
-                self._runAndBeamLog(
-                    logName="08_make_approve",
-                    command=["make", "-f", self._makefileForTargetThatMayNotExist("approve"), "approve"],
-                    cwd=self._git.directory())
+                with makefiletricks.makefileForATargetThatMayNotExists(
+                        directory=self._git.directory(), target="approve") as tempMakefile:
+                    self._runAndBeamLog(
+                        logName="08_make_approve", command=["make", "-f", tempMakefile, "approve"],
+                        cwd=self._git.directory())
         finally:
             self._unmountBinds()
             self._beamLogsDir("buildHost_var_log", "/var/log")
