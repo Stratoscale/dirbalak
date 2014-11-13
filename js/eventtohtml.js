@@ -19,8 +19,8 @@ EventToHTML._hostAnchor = function(host)
 
 EventToHTML._jobAnchor = function(job)
 {
-    return 'Job <a href="/project/' + job.basename + '">' + job.basename + '</a> (' +
-        job.hexHash + ')';
+    return 'Job <span class="jobAnchor jobAnchor__' + job.basename + ' jobAnchor__' + job.basename + '__' + job.hexHash + '"></span> ' +
+        '<a href="/project/' + job.basename + '">' + job.basename + '</a> (' + job.hexHash + ')';
 }
 
 EventToHTML._buildAnchor = function(obj)

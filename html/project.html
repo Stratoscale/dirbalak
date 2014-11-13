@@ -1,13 +1,23 @@
 {% extends "dirbalakbase.html" %}
 
 {% block content %}
+    <style>
+        .jobAnchor {
+            font-weight: bold;
+        }
+    </style>
     <div class="container">
         <h2>{{ project }}</h2>
 
         <div>
-            Last Commit: 
-            <span data-bind="text: lastCommitText()"></span> Ago
-            (<span data-bind="text: lastCommit().toLocaleString()"></span>)
+            <p>
+                Last Commit:
+                <span data-bind="text: lastCommitHash"></span> Ago
+            </p>
+            <p>
+                <span data-bind="text: lastCommitTimestampText()"></span> Ago
+                (<span data-bind="text: lastCommitTimestamp().toLocaleString()"></span>)
+            </p>
         </div>
 
         <div>
@@ -117,16 +127,17 @@
             self.project = project;
             self.dependsOn = ko.observableArray([]);
             self.dependedBy = ko.observableArray([]);
-            self.lastCommit = ko.observable(new Date(0));
+            self.lastCommitTimestamp = ko.observable(new Date(0));
+            self.lastCommitHash = ko.observable("");
             self.owner = ko.observable("");
             self.group = ko.observable("");
             self.events = ko.observableArray([]);
             self.scriptFilename = makeid() + ".txt";
 
-            self.lastCommitText = ko.computed( function() {
+            self.lastCommitTimestampText = ko.computed( function() {
                 var now = (new Date()).getTime() / 1000;
-                var lastCommit = self.lastCommit().getTime() / 1000;
-                return secondsToDescription(now - lastCommit);
+                var lastCommitTimestamp = self.lastCommitTimestamp().getTime() / 1000;
+                return secondsToDescription(now - lastCommitTimestamp);
             });
 
             self.setData = function(ob) {
@@ -139,15 +150,23 @@ z = ob;
                 for (var i in ob.dependedBy)
                     self.dependedBy.push(ob.dependedBy[i]);
                 self.dependedBy.sort(typeThenBasename);
-                self.lastCommit(new Date(ob.lastCommit*1000));
+                self.lastCommitTimestamp(new Date(ob.lastCommitTimestamp*1000));
+                self.lastCommitHash(ob.lastCommitHash);
                 self.owner(ob.owner);
                 self.group(ob.group);
+                self.updateCurrentHash();
             };
 
             self.setEvents = function(ob) {
                 self.events.removeAll();
                 for ( var i = ob.length - 1; i >= 0; i -= 1 )
                     self.events.push(ob[i]);
+                self.updateCurrentHash();
+            };
+
+            self.updateCurrentHash = function() {
+                $(".jobAnchor__" + projectBasenameArgument).text("NOT latest");
+                $(".jobAnchor__" + projectBasenameArgument + "__" + self.lastCommitHash()).text("LATEST");
             };
 
             self.requestFetch = function() {

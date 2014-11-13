@@ -48,7 +48,8 @@ class Project:
         asDict = dict(
             name=self._basename,
             gitURL=self._gitURL, owner=self._owner, group=self._group,
-            lastCommit=self._mirror.commitTimestamp('origin/master'),
+            lastCommitHash=self._mirror.hash('origin/master'),
+            lastCommitTimestamp=self._mirror.commitTimestamp('origin/master'),
             dependsOn=self._dependsOn(), dependedBy=self._dependedBy())
         tojs.set("project/%s" % self._basename, asDict)
 

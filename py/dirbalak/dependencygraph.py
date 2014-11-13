@@ -22,7 +22,7 @@ class DependencyGraph:
         return self._cachedGraph
 
     def _makeGraph(self):
-        graphInstance = graph.Graph()
+        graphInstance = graph.Graph(dict(ranksep=0.7))
         for dep in self._dependencies:
             self._addNodeToGraph(graphInstance, dep.gitURL)
             if dep.requiringURL is not None:
