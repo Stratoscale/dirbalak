@@ -27,6 +27,9 @@ class FetchThread(threading.Thread):
         self._enqueued += 1
         self._pool.apply_async(self._fetchSubthread, args=(mirror,))
 
+    def mustTraverse(self):
+        self._traverseNeeded = True
+
     def _fetchSubthread(self, mirror):
         logging.info("Fetching gitURL %(url)s", dict(url=mirror.gitURL()))
         try:

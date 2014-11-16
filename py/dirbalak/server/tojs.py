@@ -11,7 +11,7 @@ def appendEvent(eventListID, obj):
 
 
 def addToProjectsList(asDict):
-    tojs.subsetDefault("projectsList", asDict['gitURL'], asDict)
+    tojs.subset("projectsList", asDict['gitURL'], asDict)
 
 
 def addToBuildHostsList(ipAddress):

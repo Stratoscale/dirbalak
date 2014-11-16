@@ -28,6 +28,7 @@ class Multiverse:
     def needsFetch(self, reason):
         for project in self.projects.values():
             project.needsFetch(reason)
+        self._fetchThread.mustTraverse()
 
     def rereadMultiverseFile(self, filename):
         with open(filename) as f:
