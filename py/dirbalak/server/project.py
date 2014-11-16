@@ -6,17 +6,24 @@ from dirbalak import config
 
 
 class Project:
-    def __init__(self, gitURL, owner, group, fetchThread, defaultRootFS=False):
+    def __init__(self, gitURL, owner, group, fetchThread, defaultRootFS=False, buildBanned=None):
         self._gitURL = gitURL
         self._owner = owner
         self._group = group
         self._fetchThread = fetchThread
         self._defaultRootFS = defaultRootFS
+        self._buildBanned = buildBanned
         self._basename = gitwrapper.originURLBasename(gitURL)
         self._mirror = repomirrorcache.get(gitURL)
         self._traverse = None
         self._masterBuildHistory = projectmasterbuildhistory.ProjectMasterBuildHistory(
             basename=self._basename)
+
+    def update(self, owner, group, defaultRootFS=False, buildBanned=None, **ignoreRest):
+        self._owner = owner
+        self._group = group
+        self._defaultRootFS = defaultRootFS
+        self._buildBanned = buildBanned
 
     def gitURL(self):
         return self._gitURL
@@ -26,6 +33,9 @@ class Project:
 
     def basename(self):
         return self._basename
+
+    def buildBanned(self):
+        return self._buildBanned
 
     def buildRootFS(self):
         return config.NO_DIRBALAK_MANIFEST_BUILD_ROOTFS if self._defaultRootFS else None
@@ -48,6 +58,7 @@ class Project:
         asDict = dict(
             name=self._basename,
             gitURL=self._gitURL, owner=self._owner, group=self._group,
+            buildBanned=self._buildBanned,
             lastCommitHash=self._mirror.hash('origin/master'),
             lastCommitTimestamp=self._mirror.commitTimestamp('origin/master'),
             dependsOn=self._dependsOn(), dependedBy=self._dependedBy())
@@ -56,6 +67,7 @@ class Project:
     def _addToProjectsList(self):
         project = dict(
             basename=self._basename, gitURL=self._gitURL,
+            buildBanned=self._buildBanned,
             owner=self._owner, group=self._group)
         tojs.addToProjectsList(project)
 

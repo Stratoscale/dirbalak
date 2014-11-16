@@ -29,11 +29,11 @@ class _AllProjects(resource.Resource):
         resource.Resource.__init__(self)
 
     def getChild(self, path, request):
-        png, map = self._make(request)
+        svg, map = self._make(request)
         if path == "map":
             return _Static(map, 'text/html')
         else:
-            return _Static(png, 'image/png')
+            return _Static(svg, 'image/svg+xml')
 
     def clearCache(self):
         self._cache = dict()
@@ -49,7 +49,7 @@ class _AllProjects(resource.Resource):
             attributesCallback = multiversegraphnodeattributes.MultiverseGraphNodeAttributes(
                 self._multiverse).attributes
             graph = dependencygraph.DependencyGraph(filtered, attributesCallback).makeGraph()
-            self._cache[(solventRootFSArcs, dirbalakBuildRootFSArcs)] = graph.pngAndMap()
+            self._cache[(solventRootFSArcs, dirbalakBuildRootFSArcs)] = graph.svgAndMap()
         return self._cache[(solventRootFSArcs, dirbalakBuildRootFSArcs)]
 
 
@@ -75,11 +75,11 @@ class _ProjectRenderer(resource.Resource):
         resource.Resource.__init__(self)
 
     def getChild(self, path, request):
-        png, map = self._make(request)
+        svg, map = self._make(request)
         if path == "map":
             return _Static(map, 'text/html')
         else:
-            return _Static(png, 'image/png')
+            return _Static(svg, 'image/svg+xml')
 
     def _make(self, request):
         solventRootFSArcs = request.args['solventRootFSArcs'][0]
@@ -94,7 +94,7 @@ class _ProjectRenderer(resource.Resource):
             attributesCallback = multiversegraphnodeattributes.MultiverseGraphNodeAttributes(
                 self._multiverse).attributes
             graph = dependencygraph.DependencyGraph(filter.dependencies(), attributesCallback).makeGraph()
-            self._cache[(solventRootFSArcs, dirbalakBuildRootFSArcs)] = graph.pngAndMap()
+            self._cache[(solventRootFSArcs, dirbalakBuildRootFSArcs)] = graph.svgAndMap()
         return self._cache[(solventRootFSArcs, dirbalakBuildRootFSArcs)]
 
 

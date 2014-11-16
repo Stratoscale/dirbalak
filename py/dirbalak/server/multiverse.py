@@ -1,22 +1,19 @@
 from dirbalak.server import project
 from dirbalak import traverse
+from upseto import gitwrapper
 import yaml
 
 
 class Multiverse:
-    def __init__(self, data, fetchThread):
-        self._data = data
+    def __init__(self, fetchThread):
         self._fetchThread = fetchThread
         self.projects = dict()
-        for projectData in data['PROJECTS']:
-            projectInstance = project.Project(fetchThread=fetchThread, ** projectData)
-            self.projects[projectInstance.basename()] = projectInstance
 
     @classmethod
     def load(cls, filename, fetchThread):
-        with open(filename) as f:
-            data = yaml.load(f.read())
-        return cls(data, fetchThread)
+        result = cls(fetchThread)
+        result.rereadMultiverseFile(filename)
+        return result
 
     def traverse(self):
         self._traverse = traverse.Traverse()
@@ -31,3 +28,16 @@ class Multiverse:
     def needsFetch(self, reason):
         for project in self.projects.values():
             project.needsFetch(reason)
+
+    def rereadMultiverseFile(self, filename):
+        with open(filename) as f:
+            data = yaml.load(f.read())
+        for projectData in data['PROJECTS']:
+            basename = gitwrapper.originURLBasename(projectData['gitURL'])
+            if basename in self.projects:
+                projectInstance = self.projects[basename]
+                projectInstance.update(** projectData)
+            else:
+                projectInstance = project.Project(fetchThread=self._fetchThread, ** projectData)
+                self.projects[projectInstance.basename()] = projectInstance
+        self.needsFetch("Reread multiverse file")

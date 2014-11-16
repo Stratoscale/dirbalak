@@ -1,9 +1,11 @@
 from upseto import gitwrapper
 from dirbalak.rackrun import solventofficiallabels
 from dirbalak.rackrun import buildstate
+from dirbalak.rackrun import traversefilterbuildbanned
 from dirbalak import repomirrorcache
 from dirbalak.server import tojs
 import collections
+import logging
 
 
 class JobQueue:
@@ -32,7 +34,8 @@ class JobQueue:
         self._interPriorityRotation.append(self._interPriorityRotation.pop(0))
         for key in self._interPriorityRotation:
             for job in self._queue.get(key, []):
-                if not self._buildState.get(job['gitURL'], job['hexHash'])['inProgress']:
+                if not job['inProgress']:
+                    job['inProgress'] = True
                     self._buildState.inProgress(job['gitURL'], job['hexHash'])
                     self._rotateQueueByOne(self._queue, key)
                     self._toJS()
@@ -52,12 +55,19 @@ class JobQueue:
         labels = solventofficiallabels.SolventOfficialLabels(self._officialObjectStore)
         self._reversedMap = dict()
         self._cantBeBuilt = dict()
-        for dep in self._multiverse.getTraverse().dependencies():
+        filtered = traversefilterbuildbanned.TraverseFilterBuildBanned(
+            self._multiverse,
+            self._multiverse.getTraverse().dependencies())
+        for dep in filtered.dependencies():
             basename = gitwrapper.originURLBasename(dep.gitURL)
+            if basename not in self._multiverse.projects:
+                logging.info("Will not build project '%(project)s' not in the multiverse file", dict(
+                    project=basename))
+                continue
             project = self._multiverse.projects[basename]
             hexHash = dep.hash if dep.hash != 'origin/master' else dep.masterHash
             projectDict = dict(
-                basename=basename, hash=dep.hash, gitURL=dep.gitURL, submit=True,
+                basename=basename, hash=dep.hash, gitURL=dep.gitURL, submit=False,
                 hexHash=hexHash, buildRootFS=project.buildRootFS())
             buildState = self._buildState.get(dep.gitURL, hexHash)
             projectDict.update(buildState)
@@ -65,18 +75,25 @@ class JobQueue:
             if unbuiltRequirements:
                 self._cantBeBuilt[(basename, dep.hash)] = unbuiltRequirements
                 continue
+            if project.buildBanned():
+                logging.info(
+                    "Will not put project '%(project)s' in queue, is build banned '%(message)s'",
+                    dict(project=basename, message=project.buildBanned()))
+                continue
             if dep.hash == "origin/master":
                 mirror = repomirrorcache.get(dep.gitURL)
                 if labels.built(basename, mirror.hash('origin/master')):
+                    self._put(projectDict, self.MASTERS_REBUILD)
+                else:
                     if buildState['failures'] > 0 and buildState['successes'] == 0:
+                        projectDict['submit'] = True
                         self._put(projectDict, self.MASTERS_WHICH_BUILD_ONLY_FAILED)
                     else:
-                        projectDict['submit'] = False
-                        self._put(projectDict, self.MASTERS_REBUILD)
-                else:
-                    self._put(projectDict, self.MASTERS_NOT_BUILT)
+                        projectDict['submit'] = True
+                        self._put(projectDict, self.MASTERS_NOT_BUILT)
             else:
                 if not labels.built(basename, dep.hash):
+                    projectDict['submit'] = True
                     projectDict['requiringBasename'] = gitwrapper.originURLBasename(dep.requiringURL)
                     self._put(projectDict, self.NON_MASTER_DEPENDENCIES)
         self._reverseMap()

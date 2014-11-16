@@ -13,25 +13,37 @@ class Graph:
         with open(filename, "w") as f:
             f.write(self._dotContents())
 
-    def savePng(self, filename):
-        assert filename.endswith(".png")
+    def saveSvg(self, filename):
+        assert filename.endswith(".svg")
         dot = tempfile.NamedTemporaryFile(suffix=".dot")
         dot.write(self._dotContents())
         dot.flush()
-        _run(["dot", dot.name, "-Tpng", "-o", filename])
+        try:
+            _run(["dot", dot.name, "-Tsvg", "-o", filename])
+        except:
+            with open("/tmp/notworky.dot", "w") as f:
+                f.write(self._dotContents())
+            logging.info("Saved last .dot file in /tmp/notworky.dot")
+            raise
 
-    def pngAndMap(self):
-        png = tempfile.NamedTemporaryFile(suffix=".png")
+    def svgAndMap(self):
+        svg = tempfile.NamedTemporaryFile(suffix=".svg")
         map = tempfile.NamedTemporaryFile(suffix=".map")
         dot = tempfile.NamedTemporaryFile(suffix=".dot")
         dot.write(self._dotContents())
         dot.flush()
-        _run(["dot", dot.name, "-Tcmap", "-o", map.name, "-Tpng", "-o", png.name])
+        try:
+            _run(["dot", dot.name, "-Tcmap", "-o", map.name, "-Tsvg", "-o", svg.name])
+        except:
+            with open("/tmp/notworky.dot", "w") as f:
+                f.write(self._dotContents())
+            logging.info("Saved last .dot file in /tmp/notworky.dot")
+            raise
         with open(map.name) as f:
             mapContents = f.read()
-        with open(png.name, "rb") as f:
-            pngContents = f.read()
-        return pngContents, mapContents
+        with open(svg.name, "rb") as f:
+            svgContents = f.read()
+        return svgContents, mapContents
 
     def addArc(self, source, dest, **attributes):
         self._arcs.setdefault(source, dict())[dest] = attributes
@@ -126,4 +138,4 @@ if __name__ == "__main__":
     g.addArc("here", "there")
     g.addArc("there", "back again")
     g.setNodeAttributes("back again", label="first line\nsecond line")
-    g.savePng("/tmp/t.png")
+    g.saveSvg("/tmp/t.svg")

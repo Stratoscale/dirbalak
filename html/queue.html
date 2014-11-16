@@ -11,6 +11,7 @@
                     <li>
                         <a data-bind="attr: {href: '/project/' + item.basename }, text: item.basename"></a>
                         <span data-bind="if: item.inProgress">IN PROGRESS</span>
+                        <span data-bind="if: item.submit">SUBMIT</span>
                         <span data-bind="if: item.requiringBasename !== undefined">
                             (<span data-bind="text: item.hash"></span>) by
                             <a data-bind="attr: {href: '/project/' + item.requiringBasename }, text: item.requiringBasename"></a>
@@ -61,6 +62,9 @@
             {value: 2,
                 label: "Masters not yet built:",
                 noItemsLabel: "All masters are built"},
+            {value: 3,
+                label: "Masters whos build only failed:",
+                noItemsLabel: "All masters are either not built or passed at least one build"},
             {value: 4,
                 label: "Masters to rebuild:",
                 noItemsLabel: "No masters to rebuild"}];

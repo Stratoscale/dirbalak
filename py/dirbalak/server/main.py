@@ -45,6 +45,7 @@ import logbeam.config
 import subprocess
 import atexit
 import os
+import signal
 
 
 multiverseInstance = None
@@ -72,12 +73,20 @@ atexit.register(lambda *a: logbeamWebFrontend.terminate())
 
 fetchThread = fetchthread.FetchThread()
 multiverseInstance = multiverse.Multiverse.load(args.multiverseFile, fetchThread=fetchThread)
-multiverseInstance.needsFetch("Dirbalak starting")
 fetchThread.start(multiverseInstance)
 callbacks.Callbacks(multiverseInstance)
 jobQueue = jobqueue.JobQueue(args.officialObjectStore, multiverseInstance)
 fetchThread.addPostTraverseCallback(jobQueue.recalculate)
 graphResource = graphsresource.GraphsResource(multiverseInstance)
+
+
+def reloadConfig(*ignored):
+    logging.info("Received SIGHUP, rereading multiverse file")
+    multiverseInstance.rereadMultiverseFile(args.multiverseFile)
+    jobQueue.recalculate()
+
+
+signal.signal(signal.SIGHUP, reloadConfig)
 
 
 def jobDone(job, successfull):

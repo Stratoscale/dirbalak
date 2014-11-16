@@ -16,4 +16,7 @@ class MultiverseGraphNodeAttributes:
         else:
             result['fillcolor'] = ":".join(
                 "#AAFFAA" if r['successfull'] else "#FFAAAA" for r in project.masterBuildHistory())
+        if project.buildBanned():
+            result['color'] = 'red'
+            result['penwidth'] = 1
         return result

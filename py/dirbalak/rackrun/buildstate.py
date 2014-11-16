@@ -1,3 +1,6 @@
+import logging
+
+
 class BuildState:
     def __init__(self):
         self._jobs = dict()
@@ -14,6 +17,7 @@ class BuildState:
         value = dict(self.get(gitURL, hash))
         value['inProgress'] = True
         self._jobs[(gitURL, hash)] = value
+        logging.info("Job %(gitURL)s/%(hash)s now in progress", dict(gitURL=gitURL, hash=hash))
 
     def done(self, gitURL, hash, success):
         assert hash != 'origin/master'
@@ -24,3 +28,4 @@ class BuildState:
         else:
             value['failures'] += 1
         self._jobs[(gitURL, hash)] = value
+        logging.info("Job %(gitURL)s/%(hash)s no longer in progress", dict(gitURL=gitURL, hash=hash))

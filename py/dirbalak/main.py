@@ -115,7 +115,7 @@ if args.cmd == 'describe':
     print describeInstance.renderText()
     if args.graphicOutput:
         graph = describeInstance.makeGraph()
-        graph.savePng(args.graphicOutput)
+        graph.saveSvg(args.graphicOutput)
         logging.info("Saved '%(graphicOutput)s'", dict(graphicOutput=args.graphicOutput))
     if args.dotOutput:
         graph = describeInstance.makeGraph()
@@ -142,7 +142,7 @@ elif args.cmd == "discover":
     print discoverInstance.renderText()
     if args.graphicOutput:
         graph = discoverInstance.makeGraph()
-        graph.savePng(args.graphicOutput)
+        graph.saveSvg(args.graphicOutput)
         logging.info("Saved '%(graphicOutput)s'", dict(graphicOutput=args.graphicOutput))
     if args.dotOutput:
         graph = discoverInstance.makeGraph()

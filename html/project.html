@@ -9,10 +9,15 @@
     <div class="container">
         <h2>{{ project }}</h2>
 
+        <div data-bind="if: buildBanned()">
+            <span style="color: red">Banned from build:</span>
+            <span data-bind="text: buildBanned()"></span>
+        </div>
+
         <div>
             <p>
                 Last Commit:
-                <span data-bind="text: lastCommitHash"></span> Ago
+                <span data-bind="text: lastCommitHash"></span>
             </p>
             <p>
                 <span data-bind="text: lastCommitTimestampText()"></span> Ago
@@ -35,9 +40,14 @@
                     <a data-bind="attr: {href: '/project/' + basename }, text: basename"></a>
                     (<span data-bind="text: type"></span> Dependency)
                     <span data-bind="if: distanceFromMaster">
-                        <span data-bind="text: distanceFromMaster.commits"></span> Commit Behind
-                        <span data-bind="text: secondsToDescription( distanceFromMaster.time )"></span> Behind
-                        (<span data-bind="text: hash"></span>)
+                        <span data-bind="if: distanceFromMaster.broken">
+                            Broken hash
+                        </span>
+                        <span data-bind="if: ! distanceFromMaster.broken">
+                            <span data-bind="text: distanceFromMaster.commits"></span> Commit Behind
+                            <span data-bind="text: secondsToDescription( distanceFromMaster.time )"></span> Behind
+                            (<span data-bind="text: hash"></span>)
+                        </span>
                     </span>
                     <span data-bind="if: ! distanceFromMaster">
                         Latest Master
@@ -131,6 +141,7 @@
             self.lastCommitHash = ko.observable("");
             self.owner = ko.observable("");
             self.group = ko.observable("");
+            self.buildBanned = ko.observable("");
             self.events = ko.observableArray([]);
             self.scriptFilename = makeid() + ".txt";
 
@@ -154,6 +165,7 @@ z = ob;
                 self.lastCommitHash(ob.lastCommitHash);
                 self.owner(ob.owner);
                 self.group(ob.group);
+                self.buildBanned(ob.buildBanned);
                 self.updateCurrentHash();
             };
 
@@ -186,7 +198,7 @@ z = ob;
                         '<param name="scale" value="noscale" />' +
                         '<param NAME="FlashVars" value="text=#' + command + '">' +
                         '<param name="bgcolor" value="#FFFFFF">' +
-                        '<embed src="/static/clippy.swf" width="110" height="14"' +
+                        '<embed src="/static/clippy.swf" width="200" height="28"' +
                         'name="clippy" quality="high" allowScriptAccess="always"' +
                         'type="application/x-shockwave-flash"' +
                         'pluginspage="http://www.macromedia.com/go/getflashplayer"' +

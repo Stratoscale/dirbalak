@@ -61,12 +61,15 @@ class DependencyGraph:
         if distance is None:
             return {}
         else:
-            label = "behind:\\n%d commits" % distance['commits']
-            color = "#000000"
-            if 'time' in distance:
-                label += "\\n%s" % describetime.describeTime(distance['time'])
-                if distance['time'] > self._CONTINUOUS_INTEGRATION_VIOLATION_TIME:
-                    color = "#FF0000"
-                else:
-                    color = "#990000"
-            return dict(color=color, label=label)
+            if distance['broken']:
+                return dict(color="orange", label="broken")
+            else:
+                label = "behind:\\n%d commits" % distance['commits']
+                color = "#000000"
+                if 'time' in distance:
+                    label += "\\n%s" % describetime.describeTime(distance['time'])
+                    if distance['time'] > self._CONTINUOUS_INTEGRATION_VIOLATION_TIME:
+                        color = "#FF0000"
+                    else:
+                        color = "#990000"
+                return dict(color=color, label=label)
