@@ -92,10 +92,12 @@ class RepoMirror:
             try:
                 left, right = self._git.run(
                     ['rev-list', '--count', '--left-right', '%s...origin/master' % hash]).strip().split('\t')
-                result['commits'] = int(left) + int(right)
-                timeDeltaSeconds = time.time() - self.commitTimestamp('origin/master~%s' % right)
-                if timeDeltaSeconds > 0:
-                    result['time'] = timeDeltaSeconds
+                left, right = int(left), int(right)
+                result['commits'] = left + right
+                if right > 0:
+                    timeDeltaSeconds = time.time() - self.commitTimestamp('origin/master~%d' % (right - 1))
+                    if timeDeltaSeconds > 0:
+                        result['time'] = timeDeltaSeconds
             except:
                 result['broken'] = True
             return result
