@@ -128,6 +128,8 @@ elif args.cmd == "discover":
     if args.multiverseFile:
         with open(args.multiverseFile) as f:
             multiverse = yaml.load(f.read())
+        if not args.noFetch:
+            repomirrorcache.prepopulate(p['gitURL'] for p in multiverse['PROJECTS'])
         clusterMap = {
             gitwrapper.originURLBasename(p['gitURL']): p['group'] for p in multiverse['PROJECTS']}
         if args.projectsFromMultiverse:

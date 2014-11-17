@@ -39,6 +39,7 @@ from dirbalak.rackrun import jobqueue
 from dirbalak.server import scriptologresource
 from dirbalak.rackrun import pool
 from dirbalak import rackrun
+from dirbalak import repomirrorcache
 from upseto import gitwrapper
 from twisted.web import static
 import logbeam.config
@@ -46,6 +47,7 @@ import subprocess
 import atexit
 import os
 import signal
+import yaml
 
 
 multiverseInstance = None
@@ -72,6 +74,9 @@ logbeamWebFrontend = subprocess.Popen([
 atexit.register(lambda *a: logbeamWebFrontend.terminate())
 
 fetchThread = fetchthread.FetchThread()
+with open(args.multiverseFile) as f:
+    multiverseData = yaml.load(f.read())
+    repomirrorcache.prepopulate(p['gitURL'] for p in multiverseData['PROJECTS'])
 multiverseInstance = multiverse.Multiverse.load(args.multiverseFile, fetchThread=fetchThread)
 fetchThread.start(multiverseInstance)
 callbacks.Callbacks(multiverseInstance)

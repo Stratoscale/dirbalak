@@ -61,7 +61,11 @@ class FetchThread(threading.Thread):
             self._traverseNeeded = True
         self._hashes[mirror.gitURL()] = hash
         if self._traverseNeeded and self._dequeued == self._enqueued:
+            logging.info("Fetched all, starting traverse")
             self._traverseNeeded = False
             self._multiverse.traverse()
             for callback in self._postTraverseCallbacks:
                 callback()
+        else:
+            logging.info("Still missing %(fetches)d fetches", dict(
+                fetch=self._enqueued - self._dequeued))
