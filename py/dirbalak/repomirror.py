@@ -3,6 +3,7 @@ from upseto import run
 from dirbalak import config
 from dirbalak import filelock
 from dirbalak import manifest
+from dirbalak import lastvaluescache
 import upseto.manifest
 import solvent.manifest
 import os
@@ -19,6 +20,16 @@ class RepoMirror:
         self._cloneDirectory = os.path.join(config.REPO_MIRRORS_BASEDIR, self._identifier)
         self._lock = filelock.FileLock(self._cloneDirectory + ".lock")
         self._git = None
+        self._upsetoManifestsCache = lastvaluescache.LastValuesCache()
+        self._solventManifestsCache = lastvaluescache.LastValuesCache()
+        self._dirbalakManifestsCache = lastvaluescache.LastValuesCache()
+        self._hashExistsCache = lastvaluescache.LastValuesCache()
+        self.upsetoManifest = self._upsetoManifestsCache.getter(
+            self._upsetoManifestGetter, self._hashIsHex)
+        self.solventManifest = self._solventManifestsCache.getter(
+            self._solventManifestGetter, self._hashIsHex)
+        self.dirbalakManifest = self._dirbalakManifestsCache.getter(
+            self._dirbalakManifestGetter, self._hashIsHex)
 
     def gitURL(self):
         return self._gitURL
@@ -38,17 +49,20 @@ class RepoMirror:
                 os.makedirs(self._cloneDirectory)
                 self._git = gitwrapper.GitWrapper.clone(self._gitHTTPSURL, self._cloneDirectory)
 
-    def upsetoManifest(self, hash):
+    def _upsetoManifestGetter(self, hash):
         with self._lock.lock(timeout=self._LOCK_TIMEOUT):
             self._git.checkout(hash)
             return upseto.manifest.Manifest.fromDirOrNew(self._git.directory())
 
-    def solventManifest(self, hash):
+    def _hashIsHex(self, hash):
+        return len(hash) == 40
+
+    def _solventManifestGetter(self, hash):
         with self._lock.lock(timeout=self._LOCK_TIMEOUT):
             self._git.checkout(hash)
             return solvent.manifest.Manifest.fromDirOrNew(self._git.directory())
 
-    def dirbalakManifest(self, hash):
+    def _dirbalakManifestGetter(self, hash):
         with self._lock.lock(timeout=self._LOCK_TIMEOUT):
             self._git.checkout(hash)
             return manifest.Manifest.fromDirOrNew(self._git.directory())
@@ -58,9 +72,12 @@ class RepoMirror:
             return self._git.hash(branch)
 
     def hashExists(self, branch):
+        if self._hashExistsCache.get(branch):
+            return True
         with self._lock.lock(timeout=self._LOCK_TIMEOUT):
             try:
                 self._git.checkout(branch)
+                self._hashExistsCache.set(branch, True)
                 return True
             except:
                 return False
