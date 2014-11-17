@@ -30,7 +30,7 @@ class TraverseFilterBuildBanned:
 
     def _reachNonBanned(self):
         for dependency in self._filtered:
-            if dependency.type != 'root':
+            if dependency.type != 'master':
                 continue
             if self._gitURLBuildBanned(dependency.gitURL):
                 continue
