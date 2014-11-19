@@ -26,6 +26,9 @@ class CleanBuild:
     def go(self):
         self._configureEnvironment()
         self._verifyDependenciesExist()
+        self._manifest = self._mirror.dirbalakManifest(self._hash)
+        logging.info("Using %(filename)s as makefile filename", dict(
+            filename=self._manifest.makefileFilename()))
         buildRootFSLabel = self._findBuildRootFSLabel()
         self._unmountBinds()
         self._checkOutBuildRootFS(buildRootFSLabel)
@@ -45,7 +48,8 @@ class CleanBuild:
                     logName="04_solvent_submitbuild",
                     command=["sudo", "-E", "solvent", "submitbuild"], cwd=self._git.directory())
                 with makefiletricks.makefileForATargetThatMayNotExists(
-                        directory="/tmp", target="submit") as tempMakefile:
+                        directory="/tmp", makefileFilename=self._manifest.makefileFilename(),
+                        target="submit") as tempMakefile:
                     self._runAndBeamLog(
                         logName="05_make_submit", command=["make", "-f", tempMakefile, "submit"],
                         cwd=self._git.directory())
@@ -59,7 +63,9 @@ class CleanBuild:
                     command=["sudo", "-E", "solvent", "approve"],
                     cwd=self._git.directory())
                 with makefiletricks.makefileForATargetThatMayNotExists(
-                        directory=self._git.directory(), target="approve") as tempMakefile:
+                        directory=self._git.directory(),
+                        makefileFilename=self._manifest.makefileFilename(),
+                        target="approve") as tempMakefile:
                     self._runAndBeamLog(
                         logName="08_make_approve", command=["make", "-f", tempMakefile, "approve"],
                         cwd=self._git.directory())
@@ -122,22 +128,28 @@ class CleanBuild:
             cwd=self._git.directory())
 
     def _checkMakefileForErrors(self):
-        if makefiletricks.defaultTargetDependsOnTarget(self._git.directory(), 'submit'):
+        if makefiletricks.defaultTargetDependsOnTarget(
+                self._git.directory(), self._manifest.makefileFilename(), 'submit'):
             raise Exception(
                 "Default target depends on 'submit', makefile is invalid, dirbalak will not build")
-        if makefiletricks.defaultTargetDependsOnTarget(self._git.directory(), 'approve'):
+        if makefiletricks.defaultTargetDependsOnTarget(
+                self._git.directory(), self._manifest.makefileFilename(), 'approve'):
             raise Exception(
                 "Default target depends on 'approve', makefile is invalid, dirbalak will not build")
-        if not makefiletricks.targetDoesNotDependOnAnything(self._git.directory(), 'submit'):
+        if not makefiletricks.targetDoesNotDependOnAnything(
+                self._git.directory(), self._manifest.makefileFilename(), 'submit'):
             raise Exception("target 'submit' must not have any dependencies")
-        if not makefiletricks.targetDoesNotDependOnAnything(self._git.directory(), 'approve'):
+        if not makefiletricks.targetDoesNotDependOnAnything(
+                self._git.directory(), self._manifest.makefileFilename(), 'approve'):
             raise Exception("target 'approve' must not have any dependencies")
 
     def _make(self, logName, arguments=""):
         logging.info("Running make %(arguments)s", dict(arguments=arguments))
         self._runAndBeamLog(logName, [
             "sudo", "chroot", config.BUILD_CHROOT, "sh", "-c",
-            "cd %s; make -j %d %s" % (self._gitInChroot, multiprocessing.cpu_count(), arguments)])
+            "cd %s; make -f %s -j %d %s" % (
+                self._gitInChroot, self._manifest.makefileFilename(), multiprocessing.cpu_count(),
+                arguments)])
 
     def _runAndBeamLog(self, logName, command, cwd=None):
         try:
@@ -160,7 +172,8 @@ class CleanBuild:
 
     def _makeForATargetThatMayNotExist(self, logName, target, arguments=""):
         with makefiletricks.makefileForATargetThatMayNotExists(
-                directory=self._git.directory(), target=target) as tempMakefile:
+                directory=self._git.directory(), makefileFilename=self._manifest.makefileFilename(),
+                target=target) as tempMakefile:
             self._make(
                 logName=logName,
                 arguments=("-f %s %s " % (os.path.basename(tempMakefile), target)) + arguments)
@@ -169,15 +182,14 @@ class CleanBuild:
         self._beamLog(logName="06_make_racktest", output="not implemented yet", returnCode=0)
 
     def _findBuildRootFSLabel(self):
-        mani = self._mirror.dirbalakManifest(self._hash)
         try:
-            label = mani.buildRootFSLabel()
-            assert self._buildRootFS is None, \
-                "Manifest contains build rootfs, but project marked as one without"
+            label = self._manifest.buildRootFSLabel()
+            if self._buildRootFS is not None:
+                raise Exception("Manifest contains build rootfs, but project marked as one without")
             return label
         except KeyError:
             try:
-                buildRootFSGitBasename = mani.buildRootFSRepositoryBasename()
+                buildRootFSGitBasename = self._manifest.buildRootFSRepositoryBasename()
                 assert self._buildRootFS is None, \
                     "Manifest contains build rootfs, but project marked as one without"
             except KeyError:

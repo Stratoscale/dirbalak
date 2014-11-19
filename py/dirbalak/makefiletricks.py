@@ -5,23 +5,23 @@ from upseto import run
 
 
 @contextlib.contextmanager
-def makefileForATargetThatMayNotExists(directory, target):
+def makefileForATargetThatMayNotExists(directory, makefileFilename, target):
     makefile = os.path.join(directory, "fakeMakefileForTargetThatDoesNotExist")
     with open(makefile, "w") as f:
-        f.write("include Makefile\n%s:\n" % target)
+        f.write("include %s\n%s:\n" % (makefileFilename, target))
     yield makefile
     os.unlink(makefile)
 
 
-def targetDoesNotDependOnAnything(directory, target):
-    with makefileForATargetThatMayNotExists(directory, target) as tempMakefile:
+def targetDoesNotDependOnAnything(directory, makefileFilename, target):
+    with makefileForATargetThatMayNotExists(directory, makefileFilename, target) as tempMakefile:
         output = run.run(["make", "-f", tempMakefile, target, "--just-print", "-d"], directory)
     relevantLines = _linesUnderTargetConsideration(output, target)
     return 'Considering' not in "\n".join(relevantLines)
 
 
-def defaultTargetDependsOnTarget(directory, target):
-    output = run.run(["make", "--just-print", "-d"], directory)
+def defaultTargetDependsOnTarget(directory, makefileFilename, target):
+    output = run.run(["make", "-f", makefileFilename, "--just-print", "-d"], directory)
     return re.search(r"Considering .*\`%s\'" % target, output) is not None
 
 

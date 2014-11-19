@@ -17,6 +17,9 @@ class Manifest:
     def buildRootFSLabel(self):
         return self._data['BUILD_ROOTFS_LABEL']
 
+    def makefileFilename(self):
+        return self._data.get('MAKEFILE_FILENAME', 'Makefile')
+
     def setBuildRootFSRepositoryBasename(self, value):
         if 'BUILD_ROOTFS_LABEL' in self._data:
             raise Exception(
