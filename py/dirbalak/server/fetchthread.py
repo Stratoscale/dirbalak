@@ -68,4 +68,4 @@ class FetchThread(threading.Thread):
                 callback()
         else:
             logging.info("Still missing %(fetches)d fetches", dict(
-                fetch=self._enqueued - self._dequeued))
+                fetches=self._enqueued - self._dequeued))
