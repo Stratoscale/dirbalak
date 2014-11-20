@@ -14,8 +14,9 @@ class MultiverseGraphNodeAttributes:
         if len(project.masterBuildHistory()) == 0:
             result['fillcolor'] = 'white'
         else:
+            result['fontcolor'] = 'white'
             result['fillcolor'] = ":".join(
-                "#AAFFAA" if r['successfull'] else "#FFAAAA" for r in project.masterBuildHistory())
+                "#5cb85c" if r['successfull'] else "#d9534f" for r in project.masterBuildHistory())
         if project.buildBanned():
             result['color'] = 'red'
             result['penwidth'] = 1
