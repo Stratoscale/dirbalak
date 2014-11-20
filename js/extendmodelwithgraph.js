@@ -12,21 +12,14 @@ function extendModelWithGraph(model, source)
                 "&solventRootFSArcs=" + (self.solventRootFSArcs()?"yes":"") +
                 "&avoidBrowserCachingWithRandomString=" + self._makeUpRandomString();
     };
-    self._updateMap = function() {
-        url = self._imageSourceDirectory + "/map" +
-                "?dirbalakBuildRootFSArcs=" + (self.dirbalakBuildRootFSArcs()?"yes":"") +
-                "&solventRootFSArcs=" + (self.solventRootFSArcs()?"yes":"") +
-                "&avoidBrowserCachingWithRandomString=" + self._makeUpRandomString();
-        $.ajax({url: url}).done(function(data) {
-            $("#mainmap").html(data);
-        });
-    };
 
     self.updateGraph = function() {
         console.log("Updating graph");
-        $("#graph").html('<img src="' + self._imageSource() + '" usemap="#mainmap"/>' + 
-                        '<map id="mainmap" name="mainmap"></map>');
-        self._updateMap();
+       $.get(self._imageSource(), undefined, function(svgDoc) {
+            var svgDocElement = svgDoc.documentElement;
+            document.adoptNode(svgDocElement);
+            $("#graph").html(svgDocElement);
+        })
     }
     self.dirbalakBuildRootFSArcs.subscribe(self.updateGraph);
     self.solventRootFSArcs.subscribe(self.updateGraph);
