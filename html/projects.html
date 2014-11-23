@@ -10,6 +10,9 @@
             <div id="graph">
             </div>
             <p>
+                <button data-bind="enable: newGraphVersionAvailable(), click: forceGraphUpdate" class="btn btn-primary btn-sm">
+                    New graph available, click to update
+                </button>
                 <input type="checkbox" data-bind="checked: dirbalakBuildRootFSArcs">Dirbalak Build RootFS Arcs
                 &nbsp;
                 <input type="checkbox" data-bind="checked: solventRootFSArcs">Solvent RootFS Arcs
@@ -81,7 +84,7 @@
         ko.applyBindings(model);
         var ui = new RealTimeWebUI();
         ui.register("projectsList", model.setProjects);
-        ui.register("graph/generation", model.updateGraph);
+        ui.register("graph/generation", model.newVersionOfGraphAvailable);
     </script>
 
 {% endblock %}

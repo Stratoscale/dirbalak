@@ -90,6 +90,9 @@
         </div>
 
         <div>
+            <button data-bind="enable: newGraphVersionAvailable, click: forceGraphUpdate" class="btn btn-primary">
+                New graph available, click to update
+            </button>
             <button data-bind="click: requestFetch" class="btn btn-primary">Request Fetch</button>
             <button data-bind="click: updateDependencies" class="btn btn-warning">Update Dependencies</button>
         </div>
@@ -213,7 +216,7 @@ z = ob;
         var ui = new RealTimeWebUI();
         ui.register("project/{{project}}", model.setData);
         ui.register("events/project/{{project}}", model.setEvents);
-        ui.register("graph/generation", model.updateGraph);
+        ui.register("graph/generation", model.newVersionOfGraphAvailable);
     </script>
 
 {% endblock %}
