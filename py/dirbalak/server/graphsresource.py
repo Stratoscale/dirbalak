@@ -90,7 +90,7 @@ class _ProjectRenderer(resource.Resource):
                 solventRootFSArcs=solventRootFSArcs,
                 dirbalakBuildRootFSArcs=dirbalakBuildRootFSArcs).dependencies()
             filter = traversefilterreachable.TraverseFilterReachable(filtered)
-            filter.includeRecursiveByBasenames(self._project.basename())
+            filter.includeRecursiveByExactHashes(self._project.gitURL(), 'origin/master')
             attributesCallback = multiversegraphnodeattributes.MultiverseGraphNodeAttributes(
                 self._multiverse).attributes
             graph = dependencygraph.DependencyGraph(filter.dependencies(), attributesCallback).makeGraph()

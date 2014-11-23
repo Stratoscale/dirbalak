@@ -11,6 +11,7 @@ fetch = True
 
 
 def get(gitURL):
+    global _cache
     if gitURL not in _cache:
         mirror = repomirror.RepoMirror(gitURL)
         if fetch:
@@ -23,12 +24,14 @@ def get(gitURL):
 
 
 def prepopulate(gitURLs):
+    global _cache
     pool = multiprocessing.pool.ThreadPool(_CONCURRENCY)
     futures = []
     for url in gitURLs:
         if url in _cache:
             continue
         mirror = repomirror.RepoMirror(url)
+        _cache[url] = mirror
         future = pool.apply_async(_fetchSubthread, args=(mirror,))
         futures.append(future)
     for future in futures:
