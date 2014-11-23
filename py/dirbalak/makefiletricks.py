@@ -1,7 +1,7 @@
 import contextlib
 import os
 import re
-from upseto import run
+import logging
 
 
 @contextlib.contextmanager
@@ -14,28 +14,55 @@ def makefileForATargetThatMayNotExists(directory, makefileFilename, target):
 
 
 def targetDoesNotDependOnAnything(directory, makefileFilename, target):
-    with makefileForATargetThatMayNotExists(directory, makefileFilename, target) as tempMakefile:
-        output = run.run(["make", "-f", tempMakefile, target, "--just-print", "-d"], directory)
-    relevantLines = _linesUnderTargetConsideration(output, target)
-    return 'Considering' not in "\n".join(relevantLines)
+    defaultTarget, map = _targetMap(os.path.join(directory, makefileFilename))
+    reachable = _reachable(map, target)
+    if len(reachable) > 1:
+        logging.info("target '%(target)s' depends on '%(reachable)s'", dict(
+            target=target, reachable=reachable))
+    return len(reachable) == 1
 
 
 def defaultTargetDependsOnTarget(directory, makefileFilename, target):
-    output = run.run(["make", "-f", makefileFilename, "--just-print", "-d"], directory)
-    return re.search(r"Considering .*\`%s\'" % target, output) is not None
+    defaultTarget, map = _targetMap(os.path.join(directory, makefileFilename))
+    reachable = _reachable(map, defaultTarget)
+    return target in reachable
 
 
-def _linesUnderTargetConsideration(output, target):
-    lines = output.strip().split("\n")
-    considerLine = re.compile(r"Considering .*\`%s\'" % target)
-    considerLineIndex = None
-    for i in xrange(len(lines)):
-        if considerLine.match(lines[i]):
-            considerLineIndex = i
-            break
-    if considerLineIndex is None:
-        raise Exception("Did not find target '%s' in make -d output:\n%s" % (target, output))
-    for i in xrange(considerLineIndex + 1, len(lines)):
-        if lines[i][0] != ' ':
-            return lines[considerLineIndex + 1: i]
-    raise Exception("Did not find termination of consideration")
+_DEPS_SEPERATOR = re.compile(r"\s+")
+
+
+def _extractDeps(line):
+    deps = _DEPS_SEPERATOR.split(line.strip(" \n\\"))
+    return [d for d in deps if d != '']
+
+
+def _targetMap(makefile):
+    with open(makefile) as f:
+        lines = f.readlines()
+    TARGET = re.compile(r"^(\S.*):")
+    result = {}
+    defaultTarget = None
+    for lineIndex in xrange(len(lines)):
+        line = lines[lineIndex]
+        match = TARGET.match(line)
+        if match is not None:
+            target = match.group(1)
+            if defaultTarget is None:
+                defaultTarget = target
+            result.setdefault(target, [])
+            result[target] += _extractDeps(line[len(match.group(1)) + 1:])
+            prevLineIndex = lineIndex
+            while lines[prevLineIndex].endswith("\\\n"):
+                prevLineIndex += 1
+                result[target] += _extractDeps(lines[prevLineIndex])
+    return defaultTarget, result
+
+
+def _reachable(map, origin):
+    reachable = set([origin])
+    previousSize = 0
+    while previousSize != len(reachable):
+        previousSize = len(reachable)
+        for target in list(reachable):
+            reachable |= set(map.get(target, []))
+    return reachable
