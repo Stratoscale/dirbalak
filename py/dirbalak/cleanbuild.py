@@ -27,7 +27,7 @@ class CleanBuild:
         self._configureEnvironment()
         self._verifyDependenciesExist()
         self._manifest = self._mirror.dirbalakManifest(self._hash)
-        logging.info("Using %(filename)s as makefile filename", dict(
+        logging.info("Using '%(filename)s' as makefile filename", dict(
             filename=self._manifest.makefileFilename()))
         buildRootFSLabel = self._findBuildRootFSLabel()
         self._unmountBinds()
@@ -56,7 +56,8 @@ class CleanBuild:
             else:
                 logging.info("Non submitting job, skipping submission stages")
                 self._beamLog(logName="04_05_skipped_submission", output="skipped", returnCode=0)
-            self._rackTest()
+            self._makeForATargetThatMayNotExist(
+                logName="06_make_racktest", target="racktest")
             if self._submit:
                 self._runAndBeamLog(
                     logName="07_solvent_approve_build",
@@ -87,6 +88,7 @@ class CleanBuild:
             "sudo", "sed", 's/.*requiretty.*//', "-i", os.path.join(config.BUILD_CHROOT, "etc", "sudoers")])
         self._configureSolvent()
         self._configureLogbeam()
+        self._configurePyracktest()
 
     def _configureLogbeam(self):
         conf = subprocess.check_output(["logbeam", "createConfig"])
@@ -107,6 +109,11 @@ class CleanBuild:
         run.run([
             "sudo", "mv", os.path.join(config.BUILD_CHROOT, "tmp", "solvent.conf"),
             os.path.join(config.BUILD_CHROOT, "etc", "solvent.conf")])
+
+    def _configurePyracktest(self):
+        run.run([
+            "sudo", "cp", "/etc/racktest.conf",
+            os.path.join(config.BUILD_CHROOT, "etc", "racktest.conf")])
 
     def _checkOutDependencies(self):
         run.run(["sudo", "solvent", "fulfillrequirements"], cwd=self._git.directory())
@@ -142,11 +149,14 @@ class CleanBuild:
         if not makefiletricks.targetDoesNotDependOnAnything(
                 self._git.directory(), self._manifest.makefileFilename(), 'approve'):
             raise Exception("target 'approve' must not have any dependencies")
+        if not makefiletricks.targetDoesNotDependOnAnything(
+                self._git.directory(), self._manifest.makefileFilename(), 'racktest'):
+            raise Exception("target 'racktest' must not have any dependencies")
 
     def _make(self, logName, arguments=""):
         logging.info("Running make %(arguments)s", dict(arguments=arguments))
         self._runAndBeamLog(logName, [
-            "sudo", "chroot", config.BUILD_CHROOT, "sh", "-c",
+            "sudo", "-E", "chroot", config.BUILD_CHROOT, "sh", "-c",
             "cd %s; make -f %s -j %d %s" % (
                 self._gitInChroot, self._manifest.makefileFilename(), multiprocessing.cpu_count(),
                 arguments)])
@@ -177,9 +187,6 @@ class CleanBuild:
             self._make(
                 logName=logName,
                 arguments=("-f %s %s " % (os.path.basename(tempMakefile), target)) + arguments)
-
-    def _rackTest(self):
-        self._beamLog(logName="06_make_racktest", output="not implemented yet", returnCode=0)
 
     def _findBuildRootFSLabel(self):
         try:

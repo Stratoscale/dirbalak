@@ -7,6 +7,8 @@ import os
 import re
 import logging
 import subprocess
+import urlparse
+import socket
 from upseto import gitwrapper
 
 
@@ -15,7 +17,7 @@ class OfficialBuildHost:
 
     def __init__(self, client, nice=0):
         requirement = api.Requirement(imageLabel=config.OFFICIAL_BUILD_ROOTFS, imageHint="build")
-        allocationInfo = api.AllocationInfo(user="dirbalak", purpose="officialbuild", nice=nice)
+        allocationInfo = api.AllocationInfo(user="dirbalak-build", purpose="officialbuild", nice=nice)
         logging.info("Construction of an official build host: Before allocation")
         self._allocation = client.allocate(
             requirements=dict(node=requirement), allocationInfo=allocationInfo)
@@ -42,6 +44,7 @@ class OfficialBuildHost:
         self._ssh.connect()
         logging.info("Done waiting for ssh connection")
         self._configureSolvent()
+        self._configurePyracktest()
         self._ssh.ftp.putFile("/root/.netrc", netRCFile)
         self._ssh.ftp.putFile(
             "/root/dirbalakbuild.egg", os.path.join(rackrun.config.DIRBALAK_EGG_DIR, "dirbalakbuild.egg"))
@@ -60,6 +63,7 @@ class OfficialBuildHost:
         self._ssh.run.script(
             "export PYTHONPATH=/root/dirbalakbuild.egg\n"
             "export SOLVENT_CONFIG='OFFICIAL_BUILD: Yes'\n"
+            "export RACKATTACK_PROVIDER=%(rackattackProvider)s\n"
             "%(commandLine)s >& /tmp/%(cleanBuildLogFilename)s\n"
             "result=$?\n"
             "cat /tmp/%(cleanBuildLogFilename)s\n"
@@ -68,6 +72,7 @@ class OfficialBuildHost:
             "logbeam upload /tmp/%(cleanBuildLogFilename)s\n"
             "exit $result\n" % dict(
                 commandLine=cleanBuildLine,
+                rackattackProvider=self._rackattackProvider(),
                 cleanBuildLogFilename=config.CLEANBUILD_LOG_FILENAME))
 
     def _configureSolvent(self):
@@ -77,11 +82,27 @@ class OfficialBuildHost:
         # todo: change 127.0.0.1 -> localhost
         self._ssh.ftp.putContents("/etc/solvent.conf", modified)
 
+    def _configurePyracktest(self):
+        conf = "USER: dirbalak-pyracktest"
+        self._ssh.ftp.putContents("/etc/racktest.conf", conf)
+
     def _configureLogbeam(self, gitURL, logbeamBuildID):
         basename = gitwrapper.originURLBasename(gitURL)
         under = os.path.join(config.LOGBEAM_ROOT_DIR, basename, logbeamBuildID)
         conf = subprocess.check_output(["logbeam", "createConfig", "--under", under])
         self._ssh.ftp.putContents("/etc/logbeam.config", conf)
+
+    def _rackattackProvider(self):
+        ipcURL, subURL = os.environ['RACKATTACK_PROVIDER'].split('@')
+        return "RACKATTACK_PROVIDER=%s@%s" % (self._hostnameToIP(ipcURL), self._hostnameToIP(subURL))
+
+    def _hostnameToIP(self, url):
+        parsed = urlparse.urlparse(url)
+        hostname, port = parsed.netloc.split(":")
+        ip = socket.gethostbyname(hostname)
+        result = list(parsed)
+        result[1] = "%s:%s" % (ip, port)
+        return urlparse.urlunparse(result)
 
 
 if __name__ == "__main__":
