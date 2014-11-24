@@ -38,7 +38,7 @@ class CleanBuild:
         self._mountBinds()
         try:
             self._upsetoCheckRequirements()
-            self._checkMakefileForErrors()
+            makefiletricks.checkMakefileForErrors(self._git.directory(), self._manifest.makefileFilename())
             self._makeForATargetThatMayNotExist(
                 logName="02_make_prepareForCleanBuild", target="prepareForCleanBuild")
             self._make(logName="03_make")
@@ -134,25 +134,6 @@ class CleanBuild:
             logName="01_upseto_checkRequirements", command=["upseto", "checkRequirements", "--show"],
             cwd=self._git.directory())
 
-    def _checkMakefileForErrors(self):
-        if makefiletricks.defaultTargetDependsOnTarget(
-                self._git.directory(), self._manifest.makefileFilename(), 'submit'):
-            raise Exception(
-                "Default target depends on 'submit', makefile is invalid, dirbalak will not build")
-        if makefiletricks.defaultTargetDependsOnTarget(
-                self._git.directory(), self._manifest.makefileFilename(), 'approve'):
-            raise Exception(
-                "Default target depends on 'approve', makefile is invalid, dirbalak will not build")
-        if not makefiletricks.targetDoesNotDependOnAnything(
-                self._git.directory(), self._manifest.makefileFilename(), 'submit'):
-            raise Exception("target 'submit' must not have any dependencies")
-        if not makefiletricks.targetDoesNotDependOnAnything(
-                self._git.directory(), self._manifest.makefileFilename(), 'approve'):
-            raise Exception("target 'approve' must not have any dependencies")
-        if not makefiletricks.targetDoesNotDependOnAnything(
-                self._git.directory(), self._manifest.makefileFilename(), 'racktest'):
-            raise Exception("target 'racktest' must not have any dependencies")
-
     def _make(self, logName, arguments=""):
         logging.info("Running make %(arguments)s", dict(arguments=arguments))
         self._runAndBeamLog(logName, [
@@ -232,3 +213,5 @@ class CleanBuild:
         os.environ['SOLVENT_CONFIG'] = "\n".join([
             os.environ.get('SOLVENT_CONFIG', ""),
             "FORCE: yes"])
+        logging.info("rackattack provider: %(env)s", dict(
+            env=os.environ.get('RACKATTACK_PROVIDER', 'NONE')))

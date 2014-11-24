@@ -94,7 +94,7 @@ class OfficialBuildHost:
 
     def _rackattackProvider(self):
         ipcURL, subURL = os.environ['RACKATTACK_PROVIDER'].split('@')
-        return "RACKATTACK_PROVIDER=%s@%s" % (self._hostnameToIP(ipcURL), self._hostnameToIP(subURL))
+        return "%s@%s" % (self._hostnameToIP(ipcURL), self._hostnameToIP(subURL))
 
     def _hostnameToIP(self, url):
         parsed = urlparse.urlparse(url)

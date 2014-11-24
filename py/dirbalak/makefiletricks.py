@@ -4,6 +4,26 @@ import re
 import logging
 
 
+def checkMakefileForErrors(directory, makefileFilename):
+    if defaultTargetDependsOnTarget(directory, makefileFilename, 'submit'):
+        raise Exception(
+            "Default target depends on 'submit', makefile is invalid, dirbalak will not build")
+    if defaultTargetDependsOnTarget(directory, makefileFilename, 'approve'):
+        raise Exception(
+            "Default target depends on 'approve', makefile is invalid, dirbalak will not build")
+    if not targetDoesNotDependOnAnything(directory, makefileFilename, 'submit'):
+        raise Exception("target 'submit' must not have any dependencies")
+    if not targetDoesNotDependOnAnything(directory, makefileFilename, 'approve'):
+        raise Exception("target 'approve' must not have any dependencies")
+    if not targetDoesNotDependOnAnything(directory, makefileFilename, 'racktest'):
+        raise Exception("target 'racktest' must not have any dependencies")
+    if _containsSudoSolventSubmitWithoutMinusE(directory, makefileFilename):
+        raise Exception(
+            "Makefile contains 'sudo solvent submit' - which is an error. You either produce a rootfs, "
+            "in which case you should use 'sudo -E solvent submit' or you produce an product that does "
+            "not require rootfs priviledges, in which case its better to skip the sudo completly")
+
+
 @contextlib.contextmanager
 def makefileForATargetThatMayNotExists(directory, makefileFilename, target):
     makefile = os.path.join(directory, "fakeMakefileForTargetThatDoesNotExist")
@@ -26,6 +46,12 @@ def defaultTargetDependsOnTarget(directory, makefileFilename, target):
     defaultTarget, map = _targetMap(os.path.join(directory, makefileFilename))
     reachable = _reachable(map, defaultTarget)
     return target in reachable
+
+
+def _containsSudoSolventSubmitWithoutMinusE(directory, makefileFilename):
+    with open(os.path.join(directory, makefileFilename)) as f:
+        contents = f.read()
+    return re.search(r"\bsudo\s+solvent\s+submit", contents) is not None
 
 
 _DEPS_SEPERATOR = re.compile(r"\s+")

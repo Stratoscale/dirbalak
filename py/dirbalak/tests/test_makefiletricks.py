@@ -42,6 +42,16 @@ class Test(unittest.TestCase):
             set(['submit']))
         self.assertTrue(makefiletricks.targetDoesNotDependOnAnything(
             os.path.dirname(__file__), "samplemakefile.Makefile", 'submit'))
+        self.assertFalse(makefiletricks._containsSudoSolventSubmitWithoutMinusE(
+            os.path.dirname(__file__), "samplemakefile.Makefile"))
+
+    def test_ContainsSudoSolventSubmitWithoutMinusE(self):
+        contents = "submit:\n\tsudo solvent submit build/rootfs\n"
+        temp = tempfile.NamedTemporaryFile()
+        temp.write(contents)
+        temp.flush()
+        self.assertTrue(makefiletricks._containsSudoSolventSubmitWithoutMinusE(
+            os.path.dirname(temp.name), os.path.basename(temp.name)))
 
 
 if __name__ == '__main__':

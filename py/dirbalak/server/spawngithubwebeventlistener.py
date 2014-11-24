@@ -20,6 +20,7 @@ class SpawnGithubWebEventListener(threading.Thread):
         if self._childPid == 0:
             self._child()
             sys.exit()
+        logging.info("forked github webevent listener at pid %(pid)s", dict(pid=self._childPid))
         atexit.register(self._exit)
         self.daemon = True
         threading.Thread.start(self)
@@ -40,7 +41,9 @@ class SpawnGithubWebEventListener(threading.Thread):
         try:
             while True:
                 repo = read.readline().strip()
-                self._callback(repo)
+                if repo == '':
+                    raise Exception("EOF reading from github web event listener")
+                self._callback(repo.strip())
         except:
             logging.exception("Child event listener died, commiting suicide")
             os.kill(self._childPid, signal.SIGKILL)
