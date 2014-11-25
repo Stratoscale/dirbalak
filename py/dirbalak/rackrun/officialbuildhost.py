@@ -93,8 +93,11 @@ class OfficialBuildHost:
         self._ssh.ftp.putContents("/etc/logbeam.config", conf)
 
     def _rackattackProvider(self):
-        ipcURL, subURL = os.environ['RACKATTACK_PROVIDER'].split('@')
-        return "%s@%s" % (self._hostnameToIP(ipcURL), self._hostnameToIP(subURL))
+        ipcURL, subURL, httpURL = os.environ['RACKATTACK_PROVIDER'].split('@')
+        return "%s@%s@%s" % (
+            self._hostnameToIP(ipcURL),
+            self._hostnameToIP(subURL),
+            self._hostnameToIP(httpURL))
 
     def _hostnameToIP(self, url):
         parsed = urlparse.urlparse(url)
