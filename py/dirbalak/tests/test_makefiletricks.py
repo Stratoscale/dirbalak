@@ -14,7 +14,7 @@ class Test(unittest.TestCase):
         self.assertEquals(defaultTarget, 'a')
         self.assertEquals(map, dict(
             a=['b'],
-            b=['c','d'],
+            b=['c', 'd'],
             d=['e']))
         self.assertEquals(
             makefiletricks._reachable(map, 'b'),

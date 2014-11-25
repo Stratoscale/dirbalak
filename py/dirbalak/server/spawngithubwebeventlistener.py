@@ -5,6 +5,8 @@ import atexit
 import signal
 import os
 import sys
+import select
+import subprocess
 
 
 class SpawnGithubWebEventListener(threading.Thread):
@@ -40,13 +42,24 @@ class SpawnGithubWebEventListener(threading.Thread):
         read = os.fdopen(self._readPipe, "r")
         try:
             while True:
-                repo = read.readline().strip()
-                if repo == '':
-                    raise Exception("EOF reading from github web event listener")
-                self._callback(repo.strip())
+                ready, unused, unused = select.select([read], [], [], 30)
+                if read in ready:
+                    repo = read.readline().strip()
+                    if repo == '':
+                        raise Exception("EOF reading from github web event listener")
+                    self._callback(repo.strip())
+                else:
+                    output = subprocess.check_output(
+                        ['netstat', '-n', '-t', '-l'], stderr=subprocess.STDOUT, close_fds=True)
+                    if (":%d" % self._port) not in output:
+                        logging.error("TCP server on port '%(port)d' was not found" % dict(port=self._port))
+                        raise Exception("TCP server on port '%d' was not found" % self._port)
         except:
             logging.exception("Child event listener died, commiting suicide")
-            os.kill(self._childPid, signal.SIGKILL)
+            try:
+                os.kill(self._childPid, signal.SIGKILL)
+            except:
+                logging.exception("Unable to kill child")
             os.kill(os.getpid(), signal.SIGTERM)
             raise
 
