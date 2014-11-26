@@ -49,7 +49,12 @@ class _AllProjects(resource.Resource):
             attributesCallback = multiversegraphnodeattributes.MultiverseGraphNodeAttributes(
                 self._multiverse).attributes
             graph = dependencygraph.DependencyGraph(filtered, attributesCallback).makeGraph()
-            self._cache[(solventRootFSArcs, dirbalakBuildRootFSArcs)] = graph.svgAndMap()
+            try:
+                result = graph.svgAndMap()
+            except:
+                logging.exception("Unable to render graph with dot")
+                return "", ""
+            self._cache[(solventRootFSArcs, dirbalakBuildRootFSArcs)] = result
         return self._cache[(solventRootFSArcs, dirbalakBuildRootFSArcs)]
 
 
