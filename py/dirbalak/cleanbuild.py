@@ -2,7 +2,8 @@ import os
 import logging
 from dirbalak import repomirrorcache
 from dirbalak import makefiletricks
-from upseto import run
+from dirbalak import run
+from dirbalak import processtree
 from upseto import gitwrapper
 from dirbalak import config
 import re
@@ -44,22 +45,22 @@ class CleanBuild:
             self._make(logName="03_make")
             if self._submit:
                 logging.info("Submitting")
-                self._runAndBeamLog(
+                run.runAndBeamLog(
                     logName="04_solvent_submitbuild",
                     command=["sudo", "-E", "solvent", "submitbuild"], cwd=self._git.directory())
                 with makefiletricks.makefileForATargetThatMayNotExists(
                         directory="/tmp", makefileFilename=self._manifest.makefileFilename(),
                         target="submit") as tempMakefile:
-                    self._runAndBeamLog(
+                    run.runAndBeamLog(
                         logName="05_make_submit", command=["make", "-f", tempMakefile, "submit"],
                         cwd=self._git.directory())
             else:
                 logging.info("Non submitting job, skipping submission stages")
-                self._beamLog(logName="04_05_skipped_submission", output="skipped", returnCode=0)
+                run.beamLog(logName="04_05_skipped_submission", output="skipped", returnCode=0)
             self._makeForATargetThatMayNotExist(
                 logName="06_make_racktest", target="racktest")
             if self._submit:
-                self._runAndBeamLog(
+                run.runAndBeamLog(
                     logName="07_solvent_approve_build",
                     command=["sudo", "-E", "solvent", "approve"],
                     cwd=self._git.directory())
@@ -67,12 +68,13 @@ class CleanBuild:
                         directory=self._git.directory(),
                         makefileFilename=self._manifest.makefileFilename(),
                         target="approve") as tempMakefile:
-                    self._runAndBeamLog(
+                    run.runAndBeamLog(
                         logName="08_make_approve", command=["make", "-f", tempMakefile, "approve"],
                         cwd=self._git.directory())
         finally:
+            processtree.devourMyChildren()
             self._unmountBinds()
-            self._beamLogsDir("buildHost_var_log", "/var/log")
+            run.beamLogsDir("buildHost_var_log", "/var/log")
 
     def _verifyDependenciesExist(self):
         self._mirror.run(["solvent", "checkrequirements"], hash=self._hash)
@@ -130,36 +132,17 @@ class CleanBuild:
             logging.info("No upseto.manifest file, skipping verification of upseto requirements")
             return
         logging.info("Verifying upseto requirements")
-        self._runAndBeamLog(
+        run.runAndBeamLog(
             logName="01_upseto_checkRequirements", command=["upseto", "checkRequirements", "--show"],
             cwd=self._git.directory())
 
     def _make(self, logName, arguments=""):
         logging.info("Running make %(arguments)s", dict(arguments=arguments))
-        self._runAndBeamLog(logName, [
+        run.runAndBeamLog(logName, [
             "sudo", "-E", "chroot", config.BUILD_CHROOT, "sh", "-c",
             "cd %s; make -f %s -j %d %s" % (
                 self._gitInChroot, self._manifest.makefileFilename(), multiprocessing.cpu_count(),
                 arguments)])
-
-    def _runAndBeamLog(self, logName, command, cwd=None):
-        try:
-            output = run.run(command=command, cwd=cwd)
-        except subprocess.CalledProcessError as e:
-            self._beamLog(logName, e.output, e.returncode)
-            raise
-        else:
-            self._beamLog(logName, output, returnCode=0)
-
-    def _beamLog(self, logName, output, returnCode):
-        logFilename = os.path.join(config.BUILD_CHROOT, "tmp", logName + ".log.txt")
-        with open(logFilename, "w") as f:
-            f.write(output)
-            f.write("\nRETURN_CODE %d" % returnCode)
-        run.run(["logbeam", "upload", logFilename])
-
-    def _beamLogsDir(self, under, path):
-        run.run(["logbeam", "upload", path, "--under", under])
 
     def _makeForATargetThatMayNotExist(self, logName, target, arguments=""):
         with makefiletricks.makefileForATargetThatMayNotExists(

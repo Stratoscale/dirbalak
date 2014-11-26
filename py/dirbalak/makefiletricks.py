@@ -22,6 +22,11 @@ def checkMakefileForErrors(directory, makefileFilename):
             "Makefile contains 'sudo solvent submit' - which is an error. You either produce a rootfs, "
             "in which case you should use 'sudo -E solvent submit' or you produce an product that does "
             "not require rootfs priviledges, in which case its better to skip the sudo completly")
+    if _containsUpsetoFulfillRequirementsOrSolventFulfillRequirements(directory, makefileFilename):
+        raise Exception(
+            "Makefile contains 'upseto fulfillRequirements' or 'solvent fulfillrequirements'. This is "
+            "an error, since the requirements fulfillments stage is what comes before invoking 'make'."
+            " Would you put git clone inside your makefile?")
 
 
 @contextlib.contextmanager
@@ -52,6 +57,13 @@ def _containsSudoSolventSubmitWithoutMinusE(directory, makefileFilename):
     with open(os.path.join(directory, makefileFilename)) as f:
         contents = f.read()
     return re.search(r"\bsudo\s+solvent\s+submit", contents) is not None
+
+
+def _containsUpsetoFulfillRequirementsOrSolventFulfillRequirements(directory, makefileFilename):
+    with open(os.path.join(directory, makefileFilename)) as f:
+        contents = f.read()
+    return re.search(r"\bsolvent\s+fulfillrequirements", contents) is not None or \
+        re.search(r"\bupseto\s+fulfillRequirements", contents) is not None
 
 
 _DEPS_SEPERATOR = re.compile(r"\s+")
