@@ -43,20 +43,16 @@ class CleanBuild:
             self._makeForATargetThatMayNotExist(
                 logName="02_make_prepareForCleanBuild", target="prepareForCleanBuild")
             self._make(logName="03_make")
-            if self._submit:
-                logging.info("Submitting")
+            logging.info("Submitting")
+            run.runAndBeamLog(
+                logName="04_solvent_submitbuild",
+                command=["sudo", "-E", "solvent", "submitbuild"], cwd=self._git.directory())
+            with makefiletricks.makefileForATargetThatMayNotExists(
+                    directory="/tmp", makefileFilename=self._manifest.makefileFilename(),
+                    target="submit") as tempMakefile:
                 run.runAndBeamLog(
-                    logName="04_solvent_submitbuild",
-                    command=["sudo", "-E", "solvent", "submitbuild"], cwd=self._git.directory())
-                with makefiletricks.makefileForATargetThatMayNotExists(
-                        directory="/tmp", makefileFilename=self._manifest.makefileFilename(),
-                        target="submit") as tempMakefile:
-                    run.runAndBeamLog(
-                        logName="05_make_submit", command=["make", "-f", tempMakefile, "submit"],
-                        cwd=self._git.directory())
-            else:
-                logging.info("Non submitting job, skipping submission stages")
-                run.beamLog(logName="04_05_skipped_submission", output="skipped", returnCode=0)
+                    logName="05_make_submit", command=["make", "-f", tempMakefile, "submit"],
+                    cwd=self._git.directory())
             self._makeForATargetThatMayNotExist(
                 logName="06_make_racktest", target="racktest")
             if self._submit:
@@ -71,6 +67,8 @@ class CleanBuild:
                     run.runAndBeamLog(
                         logName="08_make_approve", command=["make", "-f", tempMakefile, "approve"],
                         cwd=self._git.directory())
+            else:
+                logging.info("Non submitting job - will not approve")
         finally:
             processtree.devourMyChildren()
             self._unmountBinds()

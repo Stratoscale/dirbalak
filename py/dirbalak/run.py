@@ -4,6 +4,7 @@ import tempfile
 import shutil
 import os
 import select
+import time
 
 
 run = upseto.run.run
@@ -16,12 +17,20 @@ def runAndBeamLog(logName, command, cwd=None):
             stdin=devNull, close_fds=True)
     outputLines = []
     TIMEOUT = 5 * 60
+    OVERALL_TIMEOUT = 4 * 60 * 60
+    before = time.time()
     while True:
         ready = select.select([popen.stdout], [], [], TIMEOUT)[0]
         if ready == []:
             outputLines.append(
                 "\n\n\nNo output from command '%s' for over %s seconds, timeout" % (
                     command, TIMEOUT))
+            returnCode = -1
+            break
+        if time.time() - before > OVERALL_TIMEOUT:
+            outputLines.append(
+                "\n\n\nCommand '%s' is taking over %s seconds, timeout" % (
+                    command, OVERALL_TIMEOUT))
             returnCode = -1
             break
         line = popen.stdout.readline()
