@@ -78,7 +78,11 @@ class OfficialBuildHost:
     def _configureSolvent(self):
         with open("/etc/solvent.conf") as f:
             solventConf = f.read()
-        modified = re.sub("LOCAL_OSMOSIS:.*", "LOCAL_OSMOSIS: 127.0.0.1:1010", solventConf)
+        officialOsmosisHost, officialOsmosisPort = re.search(
+            r"\bOFFICIAL_OSMOSIS\s*:\s*(\S+):(\d+)\n", solventConf).groups()
+        officialOsmosisIP = socket.gethostbyname(officialOsmosisHost)
+        modified = re.sub(r"\bOFFICIAL_OSMOSIS.*\n", "OFFICIAL_OSMOSIS: %s:%s\n" % (
+            officialOsmosisIP, officialOsmosisPort), solventConf)
         # todo: change 127.0.0.1 -> localhost
         self._ssh.ftp.putContents("/etc/solvent.conf", modified)
 
