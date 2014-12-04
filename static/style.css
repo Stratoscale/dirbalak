@@ -1,0 +1,26 @@
+text {
+	font-family: inherit;
+}
+
+.node text {
+	font-weight: bold;
+	font-size: 12px;
+	paint-order: stroke;
+	stroke: black;
+	stroke-width: 1px;
+}
+
+.edge text {
+	font-size: 8px;
+}
+
+.edge text:first-of-type {
+	text-transform: uppercase;
+	font-weight: bold;
+}
+
+.cluster text {
+	font-size: 12px;
+	text-transform: uppercase;
+	font-weight: bold;
+}
