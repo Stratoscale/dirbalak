@@ -70,6 +70,10 @@ class CleanBuild:
             else:
                 logging.info("Non submitting job - will not approve")
         finally:
+            run.runAndBeamLog(
+                logName="09_solvent_unsubmit",
+                command=["sudo", "-E", "solvent", "unsubmit"],
+                cwd=self._git.directory())  # if approved, this does nothing
             processtree.devourMyChildren()
             self._unmountBinds()
             run.beamLogsDir("buildHost_var_log", "/var/log")

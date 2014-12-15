@@ -73,7 +73,8 @@ class OfficialBuildHost:
             "exit $result\n" % dict(
                 commandLine=cleanBuildLine,
                 rackattackProvider=self._rackattackProvider(),
-                cleanBuildLogFilename=config.CLEANBUILD_LOG_FILENAME))
+                cleanBuildLogFilename=config.CLEANBUILD_LOG_FILENAME,
+                outputTimeout=25 * 60))
 
     def _configureSolvent(self):
         with open("/etc/solvent.conf") as f:
