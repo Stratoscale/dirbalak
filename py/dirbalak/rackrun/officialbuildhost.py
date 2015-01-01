@@ -94,7 +94,11 @@ class OfficialBuildHost:
     def _configureLogbeam(self, gitURL, logbeamBuildID):
         basename = gitwrapper.originURLBasename(gitURL)
         under = os.path.join(config.LOGBEAM_ROOT_DIR, basename, logbeamBuildID)
-        conf = subprocess.check_output(["logbeam", "createConfig", "--under", under])
+        environ = dict(os.environ)
+        if os.path.exists("/etc/dirbalak.logbeam.config"):
+            with open("/etc/dirbalak.logbeam.config") as f:
+                environ['LOGBEAM_CONFIG'] = f.read()
+        conf = subprocess.check_output(["logbeam", "createConfig", "--under", under], env=environ)
         self._ssh.ftp.putContents("/etc/logbeam.config", conf)
 
     def _rackattackProvider(self):
