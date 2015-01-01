@@ -20,6 +20,9 @@ class Manifest:
     def makefileFilename(self):
         return self._data.get('MAKEFILE_FILENAME', 'Makefile')
 
+    def racktestRequiresSubmit(self):
+        return self._data.get('RACKTEST_REQUIRES_SUBMIT', True)
+
     def setBuildRootFSRepositoryBasename(self, value):
         if 'BUILD_ROOTFS_LABEL' in self._data:
             raise Exception(

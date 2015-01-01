@@ -30,6 +30,8 @@ class CleanBuild:
         self._manifest = self._mirror.dirbalakManifest(self._hash)
         logging.info("Using '%(filename)s' as makefile filename", dict(
             filename=self._manifest.makefileFilename()))
+        logging.info("RACKTEST_REQUIRES_SUBMIT: %(value)s", dict(
+            value=self._manifest.racktestRequiresSubmit()))
         buildRootFSLabel = self._findBuildRootFSLabel()
         self._unmountBinds()
         self._checkOutBuildRootFS(buildRootFSLabel)
@@ -47,12 +49,13 @@ class CleanBuild:
             run.runAndBeamLog(
                 logName="04_solvent_submitbuild",
                 command=["sudo", "-E", "solvent", "submitbuild"], cwd=self._git.directory())
-            with makefiletricks.makefileForATargetThatMayNotExists(
-                    directory="/tmp", makefileFilename=self._manifest.makefileFilename(),
-                    target="submit") as tempMakefile:
-                run.runAndBeamLog(
-                    logName="05_make_submit", command=["make", "-f", tempMakefile, "submit"],
-                    cwd=self._git.directory())
+            if self._submit or self._manifest.racktestRequiresSubmit():
+                with makefiletricks.makefileForATargetThatMayNotExists(
+                        directory="/tmp", makefileFilename=self._manifest.makefileFilename(),
+                        target="submit") as tempMakefile:
+                    run.runAndBeamLog(
+                        logName="05_make_submit", command=["make", "-f", tempMakefile, "submit"],
+                        cwd=self._git.directory())
             self._makeForATargetThatMayNotExist(
                 logName="06_make_racktest", target="racktest")
             if self._submit:
