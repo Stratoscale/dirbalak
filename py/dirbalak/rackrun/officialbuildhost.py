@@ -7,7 +7,6 @@ import os
 import re
 import logging
 import subprocess
-import urlparse
 import socket
 from upseto import gitwrapper
 
@@ -102,19 +101,7 @@ class OfficialBuildHost:
         self._ssh.ftp.putContents("/etc/logbeam.config", conf)
 
     def _rackattackProvider(self):
-        ipcURL, subURL, httpURL = os.environ['RACKATTACK_PROVIDER'].split('@')
-        return "%s@%s@%s" % (
-            self._hostnameToIP(ipcURL),
-            self._hostnameToIP(subURL),
-            self._hostnameToIP(httpURL))
-
-    def _hostnameToIP(self, url):
-        parsed = urlparse.urlparse(url)
-        hostname, port = parsed.netloc.split(":")
-        ip = socket.gethostbyname(hostname)
-        result = list(parsed)
-        result[1] = "%s:%s" % (ip, port)
-        return urlparse.urlunparse(result)
+        return os.environ['RACKATTACK_PROVIDER_FOR_RACKRUN']
 
 
 if __name__ == "__main__":
