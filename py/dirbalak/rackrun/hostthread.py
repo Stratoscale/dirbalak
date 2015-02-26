@@ -65,6 +65,7 @@ class HostThread(threading.Thread):
             type=type, job=job, buildID=buildID, host=self._host.ipAddress()))
 
     def _allocationForcelyReleased(self):
+        logging.error("Allocation forcingly released - build job should now fail")
         self._host.close()
 
     def _buildOne(self):
