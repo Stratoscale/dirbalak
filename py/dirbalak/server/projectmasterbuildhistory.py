@@ -32,7 +32,7 @@ class ProjectMasterBuildHistory:
             with logsFilesystem.filesystem() as fs:
                 if not fs.path.exists(dirname):
                     return
-                for build in fs.listdir(dirname):
+                for build in fs.listdir(dirname)[:-20]:
                     if not build.endswith(self._master):
                         continue
                     if build in self._builds:
